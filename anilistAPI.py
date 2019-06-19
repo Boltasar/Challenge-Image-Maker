@@ -9,7 +9,6 @@ description: To interact with the anilist API.
 """
 
 import requests
-from magicks import print_dict, clear
 
 # Here we define our query as a multi-line string
 animeData = '''

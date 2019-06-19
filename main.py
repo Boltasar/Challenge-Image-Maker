@@ -70,9 +70,8 @@ class window(QtWidgets.QMainWindow):
         self.newChallengeName = QtWidgets.QLineEdit('New Challenge', self)
         self.newChallengeName.setMaximumSize(170, 22)
 
-        self.addChallenge = QtWidgets.QPushButton('Add Challenge', self)
-        self.addChallenge.setMaximumSize(82, 24)
-        self.addChallenge.setMinimumSize(82, 24)
+        self.addChallenge = QtWidgets.QPushButton('Add entry', self)
+        self.addChallenge.setFixedSize(82, 24)
 
         self.challengeList = QtWidgets.QListWidget(self)
         self.challengeList.setDragDropMode(4)
@@ -163,6 +162,7 @@ class window(QtWidgets.QMainWindow):
         self.challengeData['widget'] = myTextEdit()
         self.challengeData['widget'].setAcceptRichText(False)
         self.challengeData['widget'].setPlaceholderText("Type the challenge requirements")
+        self.challengeData['timer'] = QtCore.QTimer()
         self.challengeData['label'] = QtWidgets.QLabel('Challenge Data')
         self.challengeData['layout'] = QtWidgets.QGridLayout()
         self.challengeData['layout'].addWidget(self.challengeData['label'], 0, 0)
@@ -232,7 +232,8 @@ class window(QtWidgets.QMainWindow):
 
         self.animeInput['widget'].editingFinished.connect(self.anime_id_update)
         
-        self.challengeData['widget'].textChanged.connect(self.challenge_update)
+        self.challengeData['widget'].textChanged.connect(lambda:self.challengeData['timer'].start(1000))
+        self.challengeData['timer'].timeout.connect(self.challenge_update)
         
         self.challengeNumber['widget'].editingFinished.connect(self.number_update)
         
@@ -470,11 +471,6 @@ class myStatusBar(QtWidgets.QStatusBar):
     def clearMessage(self):
         self.setStyleSheet('color: white')
         super().clearMessage()
-        
-class timeOutWorker(QObject):
-    def __init__(self, parent=None):
-        super().__init__(parent=parent)
-
     #Data storage classes
 ###################################################################################################
 #Class to store the image information in

@@ -1,23 +1,33 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed May 22 09:12:31 2019
+Started on Wed May 20 09:12:31 2019
 
 Small program that helps generate the images used in several AWC submission posts
 
 @author: Bram Hermsen
 """
 
-#Import PyQt for the GUI, sys for
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PIL import Image, ImageDraw, ImageFilter, ImageFont
-from PIL.ImageQt import ImageQt
 import os
 import sys
-import requests
 import math
 import datetime
-import qdarkstyle
 import pickle
+#Import PyQt for the GUI
+from PyQt5.QtCore import pyqtSlot, Qt, QTimer
+from PyQt5.QtGui import QIcon, QIntValidator, QPixmap
+from PyQt5.QtWidgets import QAbstractItemView, QAction, QComboBox, QFileDialog
+from PyQt5.QtWidgets import QLabel, QLineEdit, QListWidget, QListWidgetItem
+from PyQt5.QtWidgets import QMainWindow, QPushButton, QWidget, QErrorMessage
+from PyQt5.QtWidgets import QRadioButton, QMessageBox, QApplication, QCheckBox
+from PyQt5.QtWidgets import QTextEdit, QStatusBar
+from PyQt5.QtWidgets import QGridLayout, QHBoxLayout, QVBoxLayout, QGroupBox
+import qdarkstyle
+#Import PIL for the image editing
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
+from PIL.ImageQt import ImageQt
+#Import requests for internet access
+import requests
+#Local module for interacting with the anilist API.
 import anilistAPI
 
 
@@ -25,27 +35,30 @@ resourcesImagePath = os.getcwd() + '\\resources\\images\\'
 resourcesFontPath = os.getcwd() + '\\resources\\fonts\\'
 saveImagePath = os.getcwd() + '\\exports\\'
 
-statusDictionary = {'Complete': [True, False, 'Green'], 'Watching': [True, False, 'Blue'], 
-                    'Decided': [True, False, 'Red'], 'Undecided': [True, True, 'White'],
-                    'Previously_Watched': [True, False, 'Orange'], 'Rewatch': [False, False, None]}
-imageLayers = ['base', 'glow', 'border', 'image', 'icons', 'number', 'tier', 'challenge', 'title', 'dates', 'duration']
+statusDictionary = {
+    'Complete': [True, False, 'Green'], 'Watching': [True, False, 'Blue'], 
+    'Decided': [True, False, 'Red'], 'Undecided': [True, True, 'White'],
+    'Previously_Watched': [True, False, 'Orange'], 'Rewatch': [False, False, None]
+    }
+imageLayers = [
+    'base', 'glow', 'border', 'image', 'icons', 'number', 'tier','challenge',
+    'title', 'dates', 'duration'
+    ]
 
-class window(QtWidgets.QMainWindow):
+class window(QMainWindow):
     def __init__(self):
         super().__init__()
         self.imageSavePath = saveImagePath
         self.challengeSavePath = saveImagePath
         self.fileName = None
-        self.recentChanges = False
-        self.recentlyLoaded = False
         
         self.main_screen()
         self.home()
 
     def main_screen(self):
         self.setFixedSize(900, 650)
-        self.setWindowTitle('AWC Image Maker')
-        self.setWindowIcon(QtGui.QIcon(resourcesImagePath + 'awc.ico'))
+        self.setWindowTitle('Anime Watching Challenge Image Maker')
+        self.setWindowIcon(QIcon(resourcesImagePath + 'awc.ico'))
         self.center_screen()
 
         #Create a universal statusbar
@@ -59,47 +72,45 @@ class window(QtWidgets.QMainWindow):
         fileMenu = mainMenu.addMenu('&File')
         
         #Action to load a list
-        openAction = QtWidgets.QAction('&Open', self)
+        openAction = QAction('&Open', self)
         openAction.setShortcut('Ctrl+O')
         openAction.setStatusTip('Open list')
         openAction.triggered.connect(self.load_list_items)
         fileMenu.addAction(openAction)
         #Action to save a list
-        saveAction = QtWidgets.QAction('&Save', self)
+        saveAction = QAction('&Save', self)
         saveAction.setShortcut('Ctrl+S')
         saveAction.setStatusTip('Save list')
         saveAction.triggered.connect(self.save_list_items)
         fileMenu.addAction(saveAction)
         #Action to initiate a closing sequence
-        quitAction = QtWidgets.QAction('&Quit', self)
+        quitAction = QAction('&Quit', self)
         quitAction.setShortcut('Ctrl+Q')
         quitAction.setStatusTip('Close the application')
         quitAction.triggered.connect(self.closeEvent)
         fileMenu.addAction(quitAction)
         #Action to initiate a forced closing sequence
-        forcedQuitAction = QtWidgets.QAction('Quit - No Save', self)
-        forcedQuitAction.setShortcut('Ctrl+Shift+Q')
-        forcedQuitAction.setStatusTip('Close the application without save prompt')
-        forcedQuitAction.triggered.connect(sys.exit)
-        fileMenu.addAction(forcedQuitAction)
+        fQuitAction = QAction('Quit - No Save', self)
+        fQuitAction.setShortcut('Ctrl+Shift+Q')
+        fQuitAction.setStatusTip('Close the application without save prompt')
+        fQuitAction.triggered.connect(sys.exit)
+        fileMenu.addAction(fQuitAction)
         #End of main body functions
-###################################################################################################
+##############################################################################
 
     def home(self):
-        self.newChallengeName = QtWidgets.QLineEdit('New Challenge', self)
-        self.newChallengeName.setMaximumSize(170, 22)
+        self.challengeName = QLineEdit('New Challenge', self)
+        self.challengeName.setMaximumSize(170, 22)
 
-        self.addChallenge = QtWidgets.QPushButton('Add entry', self)
+        self.addChallenge = QPushButton('Add entry', self)
         self.addChallenge.setFixedSize(82, 24)
 
-        self.challengeList = QtWidgets.QListWidget(self)
-        self.challengeList.setDragDropMode(4)
-        self.challengeList.DropIndicatorPosition = QtWidgets.QAbstractItemView.BelowItem
-        self.challengeList.setEditTriggers(QtWidgets.QAbstractItemView.SelectedClicked)
+        self.challengeList = QListWidget(self)
+        self.challengeList.setSortingEnabled(True)
         self.challengeList.setMaximumWidth(250)
-        self.challengeList.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
+        self.challengeList.setSelectionMode(QAbstractItemView.SingleSelection)
         
-        self.username = myLineEdit()
+        self.username = QLineEdit()
         self.username.setPlaceholderText("Input your username here")
 
         self.rightSide = {}
@@ -108,10 +119,10 @@ class window(QtWidgets.QMainWindow):
         #Create the main dictionary
         mainGrid = {}
         #Create the the main grid layout
-        mainGrid['layout'] = QtWidgets.QGridLayout()
+        mainGrid['layout'] = QGridLayout()
         mainGrid['layout'].addWidget(self.username, 0, 0, 1, 2)
         mainGrid['layout'].addWidget(self.challengeList, 1, 0, 1, 2)
-        mainGrid['layout'].addWidget(self.newChallengeName, 2, 0)
+        mainGrid['layout'].addWidget(self.challengeName, 2, 0)
         mainGrid['layout'].addWidget(self.addChallenge, 2, 1)
         mainGrid['layout'].addWidget(self.rightSide['container'], 0, 2, 3, 1)
 
@@ -124,15 +135,15 @@ class window(QtWidgets.QMainWindow):
         self.show()
         self.activateWindow()
         #End of home body functions
-###################################################################################################
+##############################################################################
 
     def populate_right_side(self, rightSide):
         #Add a text input field for the user to define the anime id
         self.animeInput = {}
-        self.animeInput['widget'] = myLineEdit()
+        self.animeInput['widget'] = QLineEdit()
         self.animeInput['widget'].setPlaceholderText("Type the link to the anime page or its ID")
-        self.animeInput['label'] = QtWidgets.QLabel('AnimeID')
-        self.animeInput['layout'] = QtWidgets.QVBoxLayout()
+        self.animeInput['label'] = QLabel('AnimeID')
+        self.animeInput['layout'] = QVBoxLayout()
         self.animeInput['layout'].addWidget(self.animeInput['label'])
         self.animeInput['layout'].addWidget(self.animeInput['widget'])
         build_layout(self.animeInput, 'container', 'layout')
@@ -143,28 +154,28 @@ class window(QtWidgets.QMainWindow):
 
         #Building the tier dropbox
         self.tierChoice = {}
-        self.tierChoice['widget'] = QtWidgets.QComboBox()
+        self.tierChoice['widget'] = QComboBox()
         for tier in [['', ''], ['Easy', 'green'], ['Normal', 'blue'], ['Hard', 'red']]:
             self.tierChoice['widget'].addItem(tier[0], tier[1])
-        self.tierChoice['label'] = QtWidgets.QLabel('Tier')
-        self.tierChoice['layout'] = QtWidgets.QVBoxLayout()
+        self.tierChoice['label'] = QLabel('Tier')
+        self.tierChoice['layout'] = QVBoxLayout()
         self.tierChoice['layout'].addWidget(self.tierChoice['label'])
         self.tierChoice['layout'].addWidget(self.tierChoice['widget'])
         self.tierChoice['layout'].insertStretch(-1, 255)
         
         #Build challenge number entry line
         self.challengeNumber = {}
-        self.challengeNumber['widget'] = myLineEdit()
-        self.challengeNumber['widget'].setValidator(QtGui.QIntValidator(0,255))
+        self.challengeNumber['widget'] = QLineEdit()
+        self.challengeNumber['widget'].setValidator(QIntValidator(0,255))
         self.challengeNumber['widget'].setPlaceholderText('#')
         self.challengeNumber['widget'].setMaximumWidth(25)
-        self.challengeNumber['label'] = QtWidgets.QLabel('Number:')
-        self.challengeNumber['layout'] = QtWidgets.QHBoxLayout()
-        self.challengeNumber['layout'].addWidget(self.challengeNumber['label'], -1, QtCore.Qt.AlignRight)
+        self.challengeNumber['label'] = QLabel('Number:')
+        self.challengeNumber['layout'] = QHBoxLayout()
+        self.challengeNumber['layout'].addWidget(self.challengeNumber['label'], -1, Qt.AlignRight)
         self.challengeNumber['layout'].addWidget(self.challengeNumber['widget'])
 
         statusTier = {}
-        statusTier['layout'] = QtWidgets.QGridLayout()
+        statusTier['layout'] = QGridLayout()
         statusTier['layout'].addWidget(self.status.box['container'], 0, 0, 2, 1)
         statusTier['layout'].addLayout(self.tierChoice['layout'], 0, 1)
         statusTier['layout'].addLayout(self.challengeNumber['layout'], 1, 1)
@@ -172,21 +183,21 @@ class window(QtWidgets.QMainWindow):
         
         #Build the minimum time entry box
         self.minimumTime = {}
-        self.minimumTime['widget'] = myLineEdit()
-        self.minimumTime['widget'].setValidator(QtGui.QIntValidator(0,9999))
-        self.minimumTime['label'] = QtWidgets.QLabel('Minimum time:')
+        self.minimumTime['widget'] = QLineEdit()
+        self.minimumTime['widget'].setValidator(QIntValidator(0,9999))
+        self.minimumTime['label'] = QLabel('Minimum time:')
 
         #Build challenge text entry box
         self.challengeData = {}
-        self.challengeData['widget'] = myTextEdit()
+        self.challengeData['widget'] = QTextEdit()
         self.challengeData['widget'].setAcceptRichText(False)
         self.challengeData['widget'].setPlaceholderText("Type the challenge requirements")
-        self.challengeData['timer'] = QtCore.QTimer()
+        self.challengeData['timer'] = QTimer()
         self.challengeData['timer'].setSingleShot(True)
-        self.challengeData['label'] = QtWidgets.QLabel('Challenge Data')
-        self.challengeData['layout'] = QtWidgets.QGridLayout()
+        self.challengeData['label'] = QLabel('Challenge Data')
+        self.challengeData['layout'] = QGridLayout()
         self.challengeData['layout'].addWidget(self.challengeData['label'], 0, 0)
-        self.challengeData['layout'].addWidget(QtWidgets.QWidget(), 0, 1)
+        self.challengeData['layout'].addWidget(QWidget(), 0, 1)
         self.challengeData['layout'].setColumnStretch(1, 255)
         self.challengeData['layout'].addWidget(self.minimumTime['label'], 0, 2)
         self.challengeData['layout'].addWidget(self.minimumTime['widget'], 0, 3)
@@ -197,18 +208,18 @@ class window(QtWidgets.QMainWindow):
         #Build the buttons
         self.buttons = {}
         #The button to import the data from anilist
-        self.buttons['import'] = QtWidgets.QPushButton('Import AniData')
+        self.buttons['import'] = QPushButton('Import AniData')
         #The button to export the image
-        self.buttons['export'] = QtWidgets.QPushButton('Export PNG')
+        self.buttons['export'] = QPushButton('Export PNG')
         #The button to force a save as dialog
-        self.buttons['exportas'] = QtWidgets.QPushButton('Export PNG As')
+        self.buttons['exportas'] = QPushButton('Export PNG As')
 
         #Placeholder image to give a feel for the eventual frame
-        self.imageViewer = {'grid': QtWidgets.QGridLayout()}
+        self.imageViewer = {'grid': QGridLayout()}
         for item in imageLayers:
-            self.imageViewer[item] = QtWidgets.QLabel()
+            self.imageViewer[item] = QLabel()
             self.imageViewer[item].setFixedSize(310, 540)
-            self.imageViewer['grid'].addWidget(self.imageViewer[item], 0, 0, QtCore.Qt.AlignCenter)
+            self.imageViewer['grid'].addWidget(self.imageViewer[item], 0, 0, Qt.AlignCenter)
         build_layout(self.imageViewer, 'viewer', 'grid', 0, 0)
         self.imageViewer['viewer'].setStyleSheet('''
                             QWidget {
@@ -216,7 +227,7 @@ class window(QtWidgets.QMainWindow):
                               border: 0px solid #32414B;
                               }
                         	''')
-        self.imageViewer['line'] = QtWidgets.QVBoxLayout()
+        self.imageViewer['line'] = QVBoxLayout()
         self.imageViewer['line'].addWidget(self.imageViewer['viewer'])
         build_layout(self.imageViewer, 'box', 'line', 0, 5)
         self.imageViewer['box'].setStyleSheet('''
@@ -227,16 +238,16 @@ class window(QtWidgets.QMainWindow):
                               }
                         	''')
         self.imageViewer['box'].setFixedSize(320, 550)
-        self.imageViewer['layout'] = QtWidgets.QGridLayout()
-        self.imageViewer['layout'].addWidget(self.imageViewer['box'], 1, 1, QtCore.Qt.AlignCenter)
+        self.imageViewer['layout'] = QGridLayout()
+        self.imageViewer['layout'].addWidget(self.imageViewer['box'], 1, 1, Qt.AlignCenter)
         build_layout(self.imageViewer, 'container', 'layout')
 
         #Build a container widget for the right side of the program
-        rightSide['layout'] = QtWidgets.QGridLayout()
+        rightSide['layout'] = QGridLayout()
         rightSide['layout'].addWidget(self.animeInput['container'], 0, 0)
-        rightSide['layout'].addWidget(self.buttons['import'], 0, 1, QtCore.Qt.AlignBottom)
-        rightSide['layout'].addWidget(self.buttons['export'], 0, 2, QtCore.Qt.AlignBottom)
-        rightSide['layout'].addWidget(self.buttons['exportas'], 0, 3, QtCore.Qt.AlignBottom)
+        rightSide['layout'].addWidget(self.buttons['import'], 0, 1, Qt.AlignBottom)
+        rightSide['layout'].addWidget(self.buttons['export'], 0, 2, Qt.AlignBottom)
+        rightSide['layout'].addWidget(self.buttons['exportas'], 0, 3, Qt.AlignBottom)
         rightSide['layout'].addWidget(statusTier['container'], 1, 0, 1, 1)
         rightSide['layout'].addWidget(self.challengeData['container'], 2, 0, 1, 1)
         rightSide['layout'].setRowStretch(2, 255)
@@ -246,11 +257,12 @@ class window(QtWidgets.QMainWindow):
         rightSide['container'].setEnabled(False)
 
     #Connecting Signals with Events
-###################################################################################################
+##############################################################################
     def connect_signals(self):
         self.addChallenge.clicked.connect(self.new_list_item)
         self.challengeList.currentItemChanged.connect(self.load_item)
         self.challengeList.keyPressEvent = self.challengeList_key_events
+        self.challengeName.editingFinished.connect(self.challenge_name_update)
 
         self.animeInput['widget'].editingFinished.connect(self.anime_id_update)
         
@@ -271,18 +283,18 @@ class window(QtWidgets.QMainWindow):
         self.buttons['exportas'].clicked.connect(self.export_image)
 
         #Events
-###################################################################################################
+##############################################################################
     def export_image(self):
-        data = self.challengeList.currentItem().data(QtCore.Qt.UserRole)
+        data = self.challengeList.currentItem().data(Qt.UserRole)
         if not data.fileName:
             return self.export_image_as()
         data.image.build_full_image()
         data.image.full.save(data.fileName, 'png')
 
     def export_image_as(self):
-        data = self.challengeList.currentItem().data(QtCore.Qt.UserRole)
+        data = self.challengeList.currentItem().data(Qt.UserRole)
         data.image.build_full_image()
-        fileName = QtWidgets.QFileDialog().getSaveFileName(self, 'Save image', self.imageSavePath, 'PNG(*.png)')[0]
+        fileName = QFileDialog().getSaveFileName(self, 'Save image', self.imageSavePath, 'PNG(*.png)')[0]
         if not fileName:
             return
         data.fileName = fileName
@@ -290,22 +302,21 @@ class window(QtWidgets.QMainWindow):
         data.image.full.save(data.fileName, 'png')
         
     def new_list_item(self):
-        k = self.challengeList.count()
-        name = self.newChallengeName.text()
-        item = QtWidgets.QListWidgetItem(name)
-        item.setFlags(item.flags() | QtCore.Qt.ItemIsEditable)
-        item.setData(QtCore.Qt.UserRole, challenge())
-        self.challengeList.insertItem(k, item)
-        self.challengeList.setCurrentRow(k)
+        total = self.challengeList.count()
+        name = self.challengeName.text() + ' ' + str(total+1).zfill(2)
+        item = QListWidgetItem(name)
+        data = challenge(number = total+1, name = name)
+        data.image.write_challenge_number(str(total+1))
+        item.setData(Qt.UserRole, data)
+        self.challengeList.insertItem(total, item)
+        self.challengeList.setCurrentRow(total)
         self.challengeList.setFocus(True)
-        self.recentChanges = True
 
     def load_item(self, currentItem):
         if not currentItem:
             return
-        recentChanges = self.recentChanges
         self.rightSide['container'].setEnabled(True)
-        data = currentItem.data(QtCore.Qt.UserRole)
+        data = currentItem.data(Qt.UserRole)
         if data.animeID is None:
             self.animeInput['widget'].setText('')
         else:
@@ -322,46 +333,50 @@ class window(QtWidgets.QMainWindow):
         self.minimumTime['widget'].setText(str(data.minimumTime))
         for item in imageLayers:
             self.change_image(data, item)
-        self.recentChanges = recentChanges
             
     def save_list_items(self):
-        fileName = QtWidgets.QFileDialog().getSaveFileName(self, 'Save challenge list', self.challengeSavePath, 'ACLO(*.aclo)')[0]
+        fileName = QFileDialog().getSaveFileName(self, 'Save challenge list', self.challengeSavePath, 'ACLO(*.aclo)')[0]
         if not fileName:
             return False
         self.challengeSavePath = fileName.rstrip(fileName.split('\\')[-1])
         challengeList = []
         for k in range(0, self.challengeList.count()):
             name = self.challengeList.item(k).text()
-            data = self.challengeList.item(k).data(QtCore.Qt.UserRole)
+            data = self.challengeList.item(k).data(Qt.UserRole)
             challengeList.append([name, data])
         with open(fileName, 'wb') as f:
             pickle.dump(challengeList, f)
-        self.recentChanges = False
         return True
         
     
     def load_list_items(self):
-        fileName = QtWidgets.QFileDialog().getOpenFileName(self, 'Load challenge list', self.challengeSavePath, 'ACLO(*.aclo)')[0]
+        fileName = QFileDialog().getOpenFileName(self, 'Load challenge list', self.challengeSavePath, 'ACLO(*.aclo)')[0]
         if not fileName:
             return
         try:
             with open(fileName, 'rb') as f:
                 dataList = pickle.load(f)
         except:
-            QtWidgets.QErrorMessage().showMessage("Couldn't open file!")
+            QErrorMessage().showMessage("Couldn't open file!")
             return
         self.challengeList.clear()
         for k, data in enumerate(dataList):
-            item = QtWidgets.QListWidgetItem(data[0])
-            item.setFlags(item.flags() | QtCore.Qt.ItemIsEditable)
-            item.setData(QtCore.Qt.UserRole, data[1])
+            item = QListWidgetItem(data[0])
+            item.setData(Qt.UserRole, data[1])
             self.challengeList.insertItem(k, item)
         self.challengeList.setCurrentRow(k)
         self.challengeList.setFocus(True)
         self.recentlyLoaded = True
            
+    def challenge_name_update(self):
+        name = self.challengeName.text()
+        for k in range(0, self.challengeList.count()):
+            number = self.challengeList.item(k).data(Qt.UserRole).number
+            text = name + ' ' + str(number).zfill(2)
+            self.challengeList.item(k).setText(text)
+        
     def import_aniData(self):
-        data = self.challengeList.currentItem().data(QtCore.Qt.UserRole)
+        data = self.challengeList.currentItem().data(Qt.UserRole)
         if data.get_info_from_id(self.username.text()):
             for item in ['image', 'title', 'dates', 'duration']:
                 self.change_image(data, item)
@@ -371,14 +386,13 @@ class window(QtWidgets.QMainWindow):
     def change_image(self, data, key):
         self.imageViewer[key].image = getattr(data.image, key, data.image.empty)
         self.imageViewer[key].Qt = ImageQt(self.imageViewer[key].image)
-        self.imageViewer[key].pixmap = QtGui.QPixmap.fromImage(self.imageViewer[key].Qt)
+        self.imageViewer[key].pixmap = QPixmap.fromImage(self.imageViewer[key].Qt)
         self.imageViewer[key].setPixmap(self.imageViewer[key].pixmap)
-        self.recentChanges = True
 
     def change_status(self, name, state, button):
-        data = self.challengeList.currentItem().data(QtCore.Qt.UserRole)
+        data = self.challengeList.currentItem().data(Qt.UserRole)
         data.status[name] = state
-        if type(button) == type(QtWidgets.QRadioButton()):
+        if type(button) == type(QRadioButton()):
             if(state):
                 position = (35, 35)
                 data.image.add_icon(name, position)
@@ -396,7 +410,7 @@ class window(QtWidgets.QMainWindow):
 
     def anime_id_update(self, data = False):
         if not data:
-            data = self.challengeList.currentItem().data(QtCore.Qt.UserRole)
+            data = self.challengeList.currentItem().data(Qt.UserRole)
         text = self.animeInput['widget'].text()
         try:
             data.animeID = int(text)
@@ -408,20 +422,24 @@ class window(QtWidgets.QMainWindow):
                 self.myStatusBar.showMessage('Invalid input', 1000)
                 return
         self.myStatusBar.showMessage('Updated ID', 1000)
-        self.challengeList.currentItem().setData(QtCore.Qt.UserRole, data)
+        self.challengeList.currentItem().setData(Qt.UserRole, data)
 
     def wrong_id(self):
         pass
 
     def number_update(self):
-        data = self.challengeList.currentItem().data(QtCore.Qt.UserRole)
-        if self.challengeNumber['widget'].text():
-            data.number = int(self.challengeNumber['widget'].text())
+        number = self.challengeNumber['widget'].text()
+        currentItem = self.challengeList.currentItem()
+        text = currentItem.text()
+        text = text.strip(text.split()[-1]) + number.zfill(2)
+        currentItem.setText(text)
+        data = currentItem.data(Qt.UserRole)
+        data.number = int(number)
         data.image.write_challenge_number(str(data.number), 15)
         self.change_image(data, 'number')
         
     def tier_update(self, index):
-        data = self.challengeList.currentItem().data(QtCore.Qt.UserRole)
+        data = self.challengeList.currentItem().data(Qt.UserRole)
         data.tierIndex = index
         tier = self.tierChoice['widget'].currentText()
         color = self.tierChoice['widget'].currentData()
@@ -429,26 +447,25 @@ class window(QtWidgets.QMainWindow):
         self.change_image(data, 'tier')
     
     def challenge_text_update(self):
-        data = self.challengeList.currentItem().data(QtCore.Qt.UserRole)
+        data = self.challengeList.currentItem().data(Qt.UserRole)
         data.challenge = self.challengeData['widget'].toPlainText()
         self.challengeData['timer'].start(500)
         
     def challenge_text_image_update(self):
-        data = self.challengeList.currentItem().data(QtCore.Qt.UserRole)
+        data = self.challengeList.currentItem().data(Qt.UserRole)
         data.image.write_challenge_text(data.challenge, 15)
         self.change_image(data, 'challenge')
-        if self.recentlyLoaded:
-            self.recentChanges = False
     
     def minimum_time_update(self):
-        data = self.challengeList.currentItem().data(QtCore.Qt.UserRole)
+        data = self.challengeList.currentItem().data(Qt.UserRole)
         if self.minimumTime['widget'].text():
             data.minimumTime = int(self.minimumTime['widget'].text())
-        data.image.write_duration_text(data.minimumTime, data.episodeCount, data.episodeDuration, 15)
+        data.image.write_duration_text(data.minimumTime, data.episodeCount,
+                                       data.episodeDuration, 15)
         self.change_image(data, 'duration')
 
     def challengeList_key_events(self, event):
-        if event.key() == QtCore.Qt.Key_Delete:
+        if event.key() == Qt.Key_Delete:
             self.rightSide['container'].setEnabled(False)
             row = self.challengeList.currentRow()
             self.challengeList.takeItem(row)
@@ -457,16 +474,13 @@ class window(QtWidgets.QMainWindow):
 
     #Exit Application
     def closeEvent(self, event):
-        if self.recentChanges:
-            choice = QtWidgets.QMessageBox.question(self,
+        choice = QMessageBox.question(self,
                         'Close Application',
-                        'You have unsaved changes. Would you like to save them?',
-                        QtWidgets.QMessageBox.Yes |
-                        QtWidgets.QMessageBox.No |
-                        QtWidgets.QMessageBox.Cancel)
-        else:
-            choice = QtWidgets.QMessageBox.Yes
-        if choice == QtWidgets.QMessageBox.Yes:
+                        'Would you like to save your current challenge?',
+                        QMessageBox.Yes |
+                        QMessageBox.No |
+                        QMessageBox.Cancel)
+        if choice == QMessageBox.Yes:
             try:
                 if self.save_list_items():
                     event.accept()
@@ -474,7 +488,7 @@ class window(QtWidgets.QMainWindow):
                     event.ignore()
             except AttributeError:
                 sys.exit()
-        elif choice == QtWidgets.QMessageBox.No:
+        elif choice == QMessageBox.No:
             try:
                 event.accept()
             except AttributeError:
@@ -485,27 +499,27 @@ class window(QtWidgets.QMainWindow):
             except AttributeError:
                 pass
 
-
-
     #Screen positioning methods
-###################################################################################################
+##############################################################################
     def center_screen(self):
         frameGm = self.frameGeometry()
-        screen = QtWidgets.QApplication.desktop().screenNumber(
-                QtWidgets.QApplication.desktop().cursor().pos())
-        centerPoint = QtWidgets.QApplication.desktop().screenGeometry(screen).center()
+        screen = QApplication.desktop().screenNumber(
+                QApplication.desktop().cursor().pos())
+        centerPoint = QApplication.desktop().screenGeometry(screen).center()
         frameGm.moveCenter(centerPoint)
         self.move(frameGm.topLeft())
 
     #Custom Widget Classes
-###################################################################################################
+##############################################################################
 #Class to universalize the statusgroup widget
 class buttonGroup():
-    def __init__(self, boxName, buttonSpacing = [2, 2], buttonMargins = 2, boxSpacing = 2, boxMargins = 0):
+    def __init__(
+            self, boxName, buttonSpacing = [2, 2], buttonMargins = 2,
+            boxSpacing = 2, boxMargins = 0):
         self.buttons = {}
         self.labels = {}
         self.box = {}
-        self.box['box'] = QtWidgets.QGroupBox()
+        self.box['box'] = QGroupBox()
         self.box['box'].setStyleSheet('''
                   QGroupBox {
                   font-weight: bold;
@@ -514,70 +528,52 @@ class buttonGroup():
                   padding: 2px;
                   margin-top: 0px;
                   }''')
-        self.box['grid'] = QtWidgets.QGridLayout()
+        self.box['grid'] = QGridLayout()
         build_layout(self.box, 'box', 'grid', buttonSpacing, buttonMargins)
-        self.box['label'] = QtWidgets.QLabel(boxName)
-        self.box['layout'] = QtWidgets.QVBoxLayout()
+        self.box['label'] = QLabel(boxName)
+        self.box['layout'] = QVBoxLayout()
         self.box['layout'].addWidget(self.box['label'])
         self.box['layout'].addWidget(self.box['box'])
         build_layout(self.box, 'container', 'layout', boxSpacing, boxMargins)
 
-    def add_button(self, name, exclusive = False, checked = False, color = None):
+    def add_button(
+            self, name, exclusive = False, checked = False, color = None):
         column = len(self.buttons)
         if exclusive:
-            self.buttons[name] = QtWidgets.QRadioButton()
+            self.buttons[name] = QRadioButton()
         else:
-            self.buttons[name] = QtWidgets.QCheckBox()
+            self.buttons[name] = QCheckBox()
         self.buttons[name].glowColor = color
-        self.labels[name] = QtWidgets.QLabel(name[0:3])
-        self.box['grid'].addWidget(self.buttons[name], 0, column, QtCore.Qt.AlignCenter)
-        self.box['grid'].addWidget(self.labels[name], 1, column, QtCore.Qt.AlignCenter)
+        self.labels[name] = QLabel(name[0:3])
+        self.box['grid'].addWidget(self.buttons[name], 0, column, Qt.AlignCenter)
+        self.box['grid'].addWidget(self.labels[name], 1, column, Qt.AlignCenter)
 
     def batch_buttons(self, buttonsDictionary = {}):
         for key, typelist in buttonsDictionary.items():
             self.add_button(key, typelist[0], typelist[1], typelist [2])
 
-class myLineEdit(QtWidgets.QLineEdit):
-    lostFocus = QtCore.pyqtSignal()
-
-    def __init__(self, parent = None):
-        super().__init__(parent=parent)
-
-    def focusOutEvent(self, e):
-        self.lostFocus.emit()
-        super().focusOutEvent(e)
-    
-class myTextEdit(QtWidgets.QTextEdit):
-    lostFocus = QtCore.pyqtSignal()
-    
-    def __init__(self, parent = None):
-        super().__init__(parent=parent)
-        
-    def focusOutEvent(self, e):
-        self.lostFocus.emit()
-        super().focusOutEvent(e)
-
 #Specialized statusBar
-class myStatusBar(QtWidgets.QStatusBar):
+class myStatusBar(QStatusBar):
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
 
-    @QtCore.pyqtSlot()
+    @pyqtSlot()
     def clearMessage(self):
         self.setStyleSheet('color: white')
         super().clearMessage()
     #Data storage classes
-###################################################################################################
+##############################################################################
 #Class to store the image information in
 class challenge:
-    def __init__(self):
+    def __init__(self, name = '', number = 0):
+        self.name = name
         self.image = animeImage((31, 35, 35, 255), (95, 104, 117, 255))
         self.animeID = None
         self.status = {}
         for key, item in statusDictionary.items():
             self.status[key] = item[1]
-        self.number = 0
+        self.number = number
         self.tierIndex = 0
         self.title = None
         self.imageLink = None
@@ -587,7 +583,6 @@ class challenge:
         self.minimumTime = 0
         self.episodeCount = 0
         self.episodeDuration = 0
-        self.fileName = None
 
     def get_id_from_link(self, link):
         #Split the link into parts seperated by /
@@ -626,6 +621,9 @@ class challenge:
                 self.completeDate = user['completedAt']
         self.image.write_dates_text(self.startDate, self.completeDate, 15)
         return True
+
+    def build_all_image_layers(self):
+        pass
 
 class animeImage:
     def __init__(self, baseColor, borderColor):
@@ -806,11 +804,11 @@ class animeImage:
         self.full.paste(self.duration, (0,0), self.duration)
 
 #Global functions
-###################################################################################################
+##############################################################################
 #A method of universalizing the building of a widget around a layout
 def build_layout(target, containerKey, layoutKey, spacings=0, margins=0):
     if containerKey not in target:
-        target[containerKey] = QtWidgets.QWidget()
+        target[containerKey] = QWidget()
     target[containerKey].setLayout(target[layoutKey])
     if type(spacings) == type([]):
         target[layoutKey].setHorizontalSpacing(spacings[0])
@@ -855,8 +853,10 @@ def draw_text(image, text, x, y, font, textColor = 'white', shadowColor = 'black
     
     for flow in range(outline,outline+1):
         for shift in range(-flow, flow+1):
-            draw.multiline_text((x + shift, y + (flow - abs(shift))), text, font=font, fill=shadowColor, align = alignment)
-            draw.multiline_text((x + shift, y - (flow - abs(shift))), text, font=font, fill=shadowColor, align = alignment)
+            draw.multiline_text((x+shift, y+(flow-abs(shift))), text,
+                                font=font, fill=shadowColor, align = alignment)
+            draw.multiline_text((x+shift, y-(flow-abs(shift))), text,
+                                font=font, fill=shadowColor, align = alignment)
     
     draw.multiline_text((x, y), text, font=font, fill=textColor, align = alignment)
     
@@ -881,16 +881,7 @@ def round_rectangle(size, radius, fill):
     return rectangle
 
 def run():
-    app = QtWidgets.QApplication([])
+    app = QApplication([])
     app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
     Gui = window()
     app.exec_()
-
-def test_image():
-    test = challenge()
-    test.animeID = 1010
-    test.get_info_from_id('bolt')
-    test.image.build_glow('green', 8)
-    test.image.add_icon('Complete', (35,35))
-    test.image.write_challenge_tier('Normal', color = 'blue', fontSize = 20)
-    test.image.build_full_image()

@@ -17,6 +17,7 @@ import requests
 import math
 import datetime
 import qdarkstyle
+import pickle
 import anilistAPI
 
 
@@ -32,6 +33,12 @@ imageLayers = ['base', 'glow', 'border', 'image', 'icons', 'number', 'tier', 'ch
 class window(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
+        self.imageSavePath = saveImagePath
+        self.challengeSavePath = saveImagePath
+        self.fileName = None
+        self.recentChanges = False
+        self.recentlyLoaded = False
+        
         self.main_screen()
         self.home()
 
@@ -48,9 +55,21 @@ class window(QtWidgets.QMainWindow):
 
         #Create a universal menubar
         mainMenu = self.menuBar()
-
         #Primary filemenu with basic actions like closing, opening and saving.
         fileMenu = mainMenu.addMenu('&File')
+        
+        #Action to load a list
+        openAction = QtWidgets.QAction('&Open', self)
+        openAction.setShortcut('Ctrl+O')
+        openAction.setStatusTip('Open list')
+        openAction.triggered.connect(self.load_list_items)
+        fileMenu.addAction(openAction)
+        #Action to save a list
+        saveAction = QtWidgets.QAction('&Save', self)
+        saveAction.setShortcut('Ctrl+S')
+        saveAction.setStatusTip('Save list')
+        saveAction.triggered.connect(self.save_list_items)
+        fileMenu.addAction(saveAction)
         #Action to initiate a closing sequence
         quitAction = QtWidgets.QAction('&Quit', self)
         quitAction.setShortcut('Ctrl+Q')
@@ -163,6 +182,7 @@ class window(QtWidgets.QMainWindow):
         self.challengeData['widget'].setAcceptRichText(False)
         self.challengeData['widget'].setPlaceholderText("Type the challenge requirements")
         self.challengeData['timer'] = QtCore.QTimer()
+        self.challengeData['timer'].setSingleShot(True)
         self.challengeData['label'] = QtWidgets.QLabel('Challenge Data')
         self.challengeData['layout'] = QtWidgets.QGridLayout()
         self.challengeData['layout'].addWidget(self.challengeData['label'], 0, 0)
@@ -174,13 +194,14 @@ class window(QtWidgets.QMainWindow):
 
         build_layout(self.challengeData, 'container', 'layout', [5,2], 0)
 
-        #Build the button to import the data from anilist
-        self.importAnidata = {}
-        self.importAnidata['widget'] = QtWidgets.QPushButton('Import AniData')
-
-        #Build the button to export the final image
-        self.exportPNG = {}
-        self.exportPNG['widget'] = QtWidgets.QPushButton('Export PNG')
+        #Build the buttons
+        self.buttons = {}
+        #The button to import the data from anilist
+        self.buttons['import'] = QtWidgets.QPushButton('Import AniData')
+        #The button to export the image
+        self.buttons['export'] = QtWidgets.QPushButton('Export PNG')
+        #The button to force a save as dialog
+        self.buttons['exportas'] = QtWidgets.QPushButton('Export PNG As')
 
         #Placeholder image to give a feel for the eventual frame
         self.imageViewer = {'grid': QtWidgets.QGridLayout()}
@@ -213,8 +234,9 @@ class window(QtWidgets.QMainWindow):
         #Build a container widget for the right side of the program
         rightSide['layout'] = QtWidgets.QGridLayout()
         rightSide['layout'].addWidget(self.animeInput['container'], 0, 0)
-        rightSide['layout'].addWidget(self.importAnidata['widget'], 0, 1, QtCore.Qt.AlignBottom)
-        rightSide['layout'].addWidget(self.exportPNG['widget'], 0, 2, QtCore.Qt.AlignBottom)
+        rightSide['layout'].addWidget(self.buttons['import'], 0, 1, QtCore.Qt.AlignBottom)
+        rightSide['layout'].addWidget(self.buttons['export'], 0, 2, QtCore.Qt.AlignBottom)
+        rightSide['layout'].addWidget(self.buttons['exportas'], 0, 3, QtCore.Qt.AlignBottom)
         rightSide['layout'].addWidget(statusTier['container'], 1, 0, 1, 1)
         rightSide['layout'].addWidget(self.challengeData['container'], 2, 0, 1, 1)
         rightSide['layout'].setRowStretch(2, 255)
@@ -232,28 +254,41 @@ class window(QtWidgets.QMainWindow):
 
         self.animeInput['widget'].editingFinished.connect(self.anime_id_update)
         
-        self.challengeData['widget'].textChanged.connect(lambda:self.challengeData['timer'].start(1000))
-        self.challengeData['timer'].timeout.connect(self.challenge_update)
+        self.challengeData['widget'].textChanged.connect(self.challenge_text_update)
+        self.challengeData['timer'].timeout.connect(self.challenge_text_image_update)
         
         self.challengeNumber['widget'].editingFinished.connect(self.number_update)
         
         self.tierChoice['widget'].currentIndexChanged.connect(self.tier_update)
         
         self.minimumTime['widget'].editingFinished.connect(self.minimum_time_update)
-
-        self.importAnidata['widget'].clicked.connect(self.import_aniData)
         
         for key, item in self.status.buttons.items():
             item.toggled.connect(lambda state, name=key, button=item: self.change_status(name, state, button))
 
-        self.exportPNG['widget'].clicked.connect(self.export_image)
+        self.buttons['import'].clicked.connect(self.import_aniData)
+        self.buttons['export'].clicked.connect(self.export_image)
+        self.buttons['exportas'].clicked.connect(self.export_image)
 
         #Events
 ###################################################################################################
     def export_image(self):
         data = self.challengeList.currentItem().data(QtCore.Qt.UserRole)
+        if not data.fileName:
+            return self.export_image_as()
         data.image.build_full_image()
+        data.image.full.save(data.fileName, 'png')
 
+    def export_image_as(self):
+        data = self.challengeList.currentItem().data(QtCore.Qt.UserRole)
+        data.image.build_full_image()
+        fileName = QtWidgets.QFileDialog().getSaveFileName(self, 'Save image', self.imageSavePath, 'PNG(*.png)')[0]
+        if not fileName:
+            return
+        data.fileName = fileName
+        self.imageSavePath = data.fileName.rstrip(data.fileName.split('\\')[-1])
+        data.image.full.save(data.fileName, 'png')
+        
     def new_list_item(self):
         k = self.challengeList.count()
         name = self.newChallengeName.text()
@@ -263,13 +298,18 @@ class window(QtWidgets.QMainWindow):
         self.challengeList.insertItem(k, item)
         self.challengeList.setCurrentRow(k)
         self.challengeList.setFocus(True)
+        self.recentChanges = True
 
     def load_item(self, currentItem):
         if not currentItem:
             return
+        recentChanges = self.recentChanges
         self.rightSide['container'].setEnabled(True)
         data = currentItem.data(QtCore.Qt.UserRole)
-        self.animeInput['widget'].setText(str(data.animeID))
+        if data.animeID is None:
+            self.animeInput['widget'].setText('')
+        else:
+            self.animeInput['widget'].setText(str(data.animeID))
         for key, item in data.status.items():
             if self.status.buttons[key].autoExclusive():
                 self.status.buttons[key].setAutoExclusive(False)
@@ -282,7 +322,44 @@ class window(QtWidgets.QMainWindow):
         self.minimumTime['widget'].setText(str(data.minimumTime))
         for item in imageLayers:
             self.change_image(data, item)
-
+        self.recentChanges = recentChanges
+            
+    def save_list_items(self):
+        fileName = QtWidgets.QFileDialog().getSaveFileName(self, 'Save challenge list', self.challengeSavePath, 'ACLO(*.aclo)')[0]
+        if not fileName:
+            return False
+        self.challengeSavePath = fileName.rstrip(fileName.split('\\')[-1])
+        challengeList = []
+        for k in range(0, self.challengeList.count()):
+            name = self.challengeList.item(k).text()
+            data = self.challengeList.item(k).data(QtCore.Qt.UserRole)
+            challengeList.append([name, data])
+        with open(fileName, 'wb') as f:
+            pickle.dump(challengeList, f)
+        self.recentChanges = False
+        return True
+        
+    
+    def load_list_items(self):
+        fileName = QtWidgets.QFileDialog().getOpenFileName(self, 'Load challenge list', self.challengeSavePath, 'ACLO(*.aclo)')[0]
+        if not fileName:
+            return
+        try:
+            with open(fileName, 'rb') as f:
+                dataList = pickle.load(f)
+        except:
+            QtWidgets.QErrorMessage().showMessage("Couldn't open file!")
+            return
+        self.challengeList.clear()
+        for k, data in enumerate(dataList):
+            item = QtWidgets.QListWidgetItem(data[0])
+            item.setFlags(item.flags() | QtCore.Qt.ItemIsEditable)
+            item.setData(QtCore.Qt.UserRole, data[1])
+            self.challengeList.insertItem(k, item)
+        self.challengeList.setCurrentRow(k)
+        self.challengeList.setFocus(True)
+        self.recentlyLoaded = True
+           
     def import_aniData(self):
         data = self.challengeList.currentItem().data(QtCore.Qt.UserRole)
         if data.get_info_from_id(self.username.text()):
@@ -296,6 +373,7 @@ class window(QtWidgets.QMainWindow):
         self.imageViewer[key].Qt = ImageQt(self.imageViewer[key].image)
         self.imageViewer[key].pixmap = QtGui.QPixmap.fromImage(self.imageViewer[key].Qt)
         self.imageViewer[key].setPixmap(self.imageViewer[key].pixmap)
+        self.recentChanges = True
 
     def change_status(self, name, state, button):
         data = self.challengeList.currentItem().data(QtCore.Qt.UserRole)
@@ -350,11 +428,17 @@ class window(QtWidgets.QMainWindow):
         data.image.write_challenge_tier(tier, color = color)
         self.change_image(data, 'tier')
     
-    def challenge_update(self):
+    def challenge_text_update(self):
         data = self.challengeList.currentItem().data(QtCore.Qt.UserRole)
         data.challenge = self.challengeData['widget'].toPlainText()
+        self.challengeData['timer'].start(500)
+        
+    def challenge_text_image_update(self):
+        data = self.challengeList.currentItem().data(QtCore.Qt.UserRole)
         data.image.write_challenge_text(data.challenge, 15)
         self.change_image(data, 'challenge')
+        if self.recentlyLoaded:
+            self.recentChanges = False
     
     def minimum_time_update(self):
         data = self.challengeList.currentItem().data(QtCore.Qt.UserRole)
@@ -373,12 +457,24 @@ class window(QtWidgets.QMainWindow):
 
     #Exit Application
     def closeEvent(self, event):
-        choice = QtWidgets.QMessageBox.question(self,
-                                            'Close Application',
-                                            'You sure you want to quit?',
-                                            QtWidgets.QMessageBox.Yes |
-                                            QtWidgets.QMessageBox.No)
+        if self.recentChanges:
+            choice = QtWidgets.QMessageBox.question(self,
+                        'Close Application',
+                        'You have unsaved changes. Would you like to save them?',
+                        QtWidgets.QMessageBox.Yes |
+                        QtWidgets.QMessageBox.No |
+                        QtWidgets.QMessageBox.Cancel)
+        else:
+            choice = QtWidgets.QMessageBox.Yes
         if choice == QtWidgets.QMessageBox.Yes:
+            try:
+                if self.save_list_items():
+                    event.accept()
+                else:
+                    event.ignore()
+            except AttributeError:
+                sys.exit()
+        elif choice == QtWidgets.QMessageBox.No:
             try:
                 event.accept()
             except AttributeError:
@@ -491,6 +587,7 @@ class challenge:
         self.minimumTime = 0
         self.episodeCount = 0
         self.episodeDuration = 0
+        self.fileName = None
 
     def get_id_from_link(self, link):
         #Split the link into parts seperated by /
@@ -707,8 +804,6 @@ class animeImage:
         self.full.paste(self.title, (0,0), self.title)
         self.full.paste(self.dates, (0,0), self.dates)
         self.full.paste(self.duration, (0,0), self.duration)
-        self.full.save(saveImagePath + 'test.png', 'png')
-        self.full.show()
 
 #Global functions
 ###################################################################################################

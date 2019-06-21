@@ -99,16 +99,17 @@ class window(QMainWindow):
 ##############################################################################
 
     def home(self):
-        self.challengeName = QLineEdit('New Challenge', self)
+        self.challengeName = QLineEdit(self)
+        self.challengeName.setPlaceholderText('Input the name of the challenge here.')
         self.challengeName.setMaximumSize(170, 22)
 
-        self.addChallenge = QPushButton('Add entry', self)
-        self.addChallenge.setFixedSize(82, 24)
+        self.addEntry = QPushButton('Add entry', self)
+        self.addEntry.setFixedSize(82, 24)
 
-        self.challengeList = QListWidget(self)
-        self.challengeList.setSortingEnabled(True)
-        self.challengeList.setMaximumWidth(250)
-        self.challengeList.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.challengeEntries = QListWidget(self)
+        self.challengeEntries.setSortingEnabled(True)
+        self.challengeEntries.setMaximumWidth(250)
+        self.challengeEntries.setSelectionMode(QAbstractItemView.SingleSelection)
         
         self.username = QLineEdit()
         self.username.setPlaceholderText("Input your username here")
@@ -121,9 +122,9 @@ class window(QMainWindow):
         #Create the the main grid layout
         mainGrid['layout'] = QGridLayout()
         mainGrid['layout'].addWidget(self.username, 0, 0, 1, 2)
-        mainGrid['layout'].addWidget(self.challengeList, 1, 0, 1, 2)
+        mainGrid['layout'].addWidget(self.challengeEntries, 1, 0, 1, 2)
         mainGrid['layout'].addWidget(self.challengeName, 2, 0)
-        mainGrid['layout'].addWidget(self.addChallenge, 2, 1)
+        mainGrid['layout'].addWidget(self.addEntry, 2, 1)
         mainGrid['layout'].addWidget(self.rightSide['container'], 0, 2, 3, 1)
 
         build_layout(mainGrid, 'widget', 'layout', 0, 2)
@@ -139,14 +140,14 @@ class window(QMainWindow):
 
     def populate_right_side(self, rightSide):
         #Add a text input field for the user to define the anime id
-        self.animeInput = {}
-        self.animeInput['widget'] = QLineEdit()
-        self.animeInput['widget'].setPlaceholderText("Type the link to the anime page or its ID")
-        self.animeInput['label'] = QLabel('AnimeID')
-        self.animeInput['layout'] = QVBoxLayout()
-        self.animeInput['layout'].addWidget(self.animeInput['label'])
-        self.animeInput['layout'].addWidget(self.animeInput['widget'])
-        build_layout(self.animeInput, 'container', 'layout')
+        self.animeIDInput = {}
+        self.animeIDInput['widget'] = QLineEdit()
+        self.animeIDInput['widget'].setPlaceholderText("Type the link to the anime page or its ID")
+        self.animeIDInput['label'] = QLabel('AnimeID')
+        self.animeIDInput['layout'] = QVBoxLayout()
+        self.animeIDInput['layout'].addWidget(self.animeIDInput['label'])
+        self.animeIDInput['layout'].addWidget(self.animeIDInput['widget'])
+        build_layout(self.animeIDInput, 'container', 'layout')
 
         #Building the groupbox
         self.status = buttonGroup('Status')
@@ -164,21 +165,21 @@ class window(QMainWindow):
         self.tierChoice['layout'].insertStretch(-1, 255)
         
         #Build challenge number entry line
-        self.challengeNumber = {}
-        self.challengeNumber['widget'] = QLineEdit()
-        self.challengeNumber['widget'].setValidator(QIntValidator(0,255))
-        self.challengeNumber['widget'].setPlaceholderText('#')
-        self.challengeNumber['widget'].setMaximumWidth(25)
-        self.challengeNumber['label'] = QLabel('Number:')
-        self.challengeNumber['layout'] = QHBoxLayout()
-        self.challengeNumber['layout'].addWidget(self.challengeNumber['label'], -1, Qt.AlignRight)
-        self.challengeNumber['layout'].addWidget(self.challengeNumber['widget'])
+        self.entryNumber = {}
+        self.entryNumber['widget'] = QLineEdit()
+        self.entryNumber['widget'].setValidator(QIntValidator(0,255))
+        self.entryNumber['widget'].setPlaceholderText('#')
+        self.entryNumber['widget'].setMaximumWidth(25)
+        self.entryNumber['label'] = QLabel('Number:')
+        self.entryNumber['layout'] = QHBoxLayout()
+        self.entryNumber['layout'].addWidget(self.entryNumber['label'], -1, Qt.AlignRight)
+        self.entryNumber['layout'].addWidget(self.entryNumber['widget'])
 
         statusTier = {}
         statusTier['layout'] = QGridLayout()
         statusTier['layout'].addWidget(self.status.box['container'], 0, 0, 2, 1)
         statusTier['layout'].addLayout(self.tierChoice['layout'], 0, 1)
-        statusTier['layout'].addLayout(self.challengeNumber['layout'], 1, 1)
+        statusTier['layout'].addLayout(self.entryNumber['layout'], 1, 1)
         build_layout(statusTier, 'container', 'layout', 2)
         
         #Build the minimum time entry box
@@ -188,22 +189,22 @@ class window(QMainWindow):
         self.minimumTime['label'] = QLabel('Minimum time:')
 
         #Build challenge text entry box
-        self.challengeData = {}
-        self.challengeData['widget'] = QTextEdit()
-        self.challengeData['widget'].setAcceptRichText(False)
-        self.challengeData['widget'].setPlaceholderText("Type the challenge requirements")
-        self.challengeData['timer'] = QTimer()
-        self.challengeData['timer'].setSingleShot(True)
-        self.challengeData['label'] = QLabel('Challenge Data')
-        self.challengeData['layout'] = QGridLayout()
-        self.challengeData['layout'].addWidget(self.challengeData['label'], 0, 0)
-        self.challengeData['layout'].addWidget(QWidget(), 0, 1)
-        self.challengeData['layout'].setColumnStretch(1, 255)
-        self.challengeData['layout'].addWidget(self.minimumTime['label'], 0, 2)
-        self.challengeData['layout'].addWidget(self.minimumTime['widget'], 0, 3)
-        self.challengeData['layout'].addWidget(self.challengeData['widget'], 1, 0, 1, 4)
+        self.entryData = {}
+        self.entryData['widget'] = QTextEdit()
+        self.entryData['widget'].setAcceptRichText(False)
+        self.entryData['widget'].setPlaceholderText("Type the entry requirements")
+        self.entryData['timer'] = QTimer()
+        self.entryData['timer'].setSingleShot(True)
+        self.entryData['label'] = QLabel('Entry Data')
+        self.entryData['layout'] = QGridLayout()
+        self.entryData['layout'].addWidget(self.entryData['label'], 0, 0)
+        self.entryData['layout'].addWidget(QWidget(), 0, 1)
+        self.entryData['layout'].setColumnStretch(1, 255)
+        self.entryData['layout'].addWidget(self.minimumTime['label'], 0, 2)
+        self.entryData['layout'].addWidget(self.minimumTime['widget'], 0, 3)
+        self.entryData['layout'].addWidget(self.entryData['widget'], 1, 0, 1, 4)
 
-        build_layout(self.challengeData, 'container', 'layout', [5,2], 0)
+        build_layout(self.entryData, 'container', 'layout', [5,2], 0)
 
         #Build the buttons
         self.buttons = {}
@@ -221,22 +222,22 @@ class window(QMainWindow):
             self.imageViewer[item].setFixedSize(310, 540)
             self.imageViewer['grid'].addWidget(self.imageViewer[item], 0, 0, Qt.AlignCenter)
         build_layout(self.imageViewer, 'viewer', 'grid', 0, 0)
-        self.imageViewer['viewer'].setStyleSheet('''
+        self.imageViewer['viewer'].setStyleSheet("""
                             QWidget {
                               background: transparent;
                               border: 0px solid #32414B;
                               }
-                        	''')
+                        	""")
         self.imageViewer['line'] = QVBoxLayout()
         self.imageViewer['line'].addWidget(self.imageViewer['viewer'])
         build_layout(self.imageViewer, 'box', 'line', 0, 5)
-        self.imageViewer['box'].setStyleSheet('''
+        self.imageViewer['box'].setStyleSheet("""
                             QWidget {
                               background-color: #FFFFFF;
                               border: 5px solid #32414B;
                               padding: 0px;
                               }
-                        	''')
+                        	""")
         self.imageViewer['box'].setFixedSize(320, 550)
         self.imageViewer['layout'] = QGridLayout()
         self.imageViewer['layout'].addWidget(self.imageViewer['box'], 1, 1, Qt.AlignCenter)
@@ -244,12 +245,12 @@ class window(QMainWindow):
 
         #Build a container widget for the right side of the program
         rightSide['layout'] = QGridLayout()
-        rightSide['layout'].addWidget(self.animeInput['container'], 0, 0)
+        rightSide['layout'].addWidget(self.animeIDInput['container'], 0, 0)
         rightSide['layout'].addWidget(self.buttons['import'], 0, 1, Qt.AlignBottom)
         rightSide['layout'].addWidget(self.buttons['export'], 0, 2, Qt.AlignBottom)
         rightSide['layout'].addWidget(self.buttons['exportas'], 0, 3, Qt.AlignBottom)
         rightSide['layout'].addWidget(statusTier['container'], 1, 0, 1, 1)
-        rightSide['layout'].addWidget(self.challengeData['container'], 2, 0, 1, 1)
+        rightSide['layout'].addWidget(self.entryData['container'], 2, 0, 1, 1)
         rightSide['layout'].setRowStretch(2, 255)
         rightSide['layout'].addWidget(self.imageViewer['container'], 1, 1, 3, 3)
 
@@ -259,17 +260,17 @@ class window(QMainWindow):
     #Connecting Signals with Events
 ##############################################################################
     def connect_signals(self):
-        self.addChallenge.clicked.connect(self.new_list_item)
-        self.challengeList.currentItemChanged.connect(self.load_item)
-        self.challengeList.keyPressEvent = self.challengeList_key_events
+        self.addEntry.clicked.connect(self.new_list_item)
+        self.challengeEntries.currentItemChanged.connect(self.load_item)
+        self.challengeEntries.keyPressEvent = self.challengeEntries_key_events
         self.challengeName.editingFinished.connect(self.challenge_name_update)
 
-        self.animeInput['widget'].editingFinished.connect(self.anime_id_update)
+        self.animeIDInput['widget'].editingFinished.connect(self.anime_id_update)
         
-        self.challengeData['widget'].textChanged.connect(self.challenge_text_update)
-        self.challengeData['timer'].timeout.connect(self.challenge_text_image_update)
+        self.entryData['widget'].textChanged.connect(self.entry_requirement_update)
+        self.entryData['timer'].timeout.connect(self.entry_requirement_image_update)
         
-        self.challengeNumber['widget'].editingFinished.connect(self.number_update)
+        self.entryNumber['widget'].editingFinished.connect(self.number_update)
         
         self.tierChoice['widget'].currentIndexChanged.connect(self.tier_update)
         
@@ -280,19 +281,19 @@ class window(QMainWindow):
 
         self.buttons['import'].clicked.connect(self.import_aniData)
         self.buttons['export'].clicked.connect(self.export_image)
-        self.buttons['exportas'].clicked.connect(self.export_image)
+        self.buttons['exportas'].clicked.connect(self.export_image_as)
 
         #Events
 ##############################################################################
     def export_image(self):
-        data = self.challengeList.currentItem().data(Qt.UserRole)
+        data = self.challengeEntries.currentItem().data(Qt.UserRole)
         if not data.fileName:
             return self.export_image_as()
         data.image.build_full_image()
         data.image.full.save(data.fileName, 'png')
 
     def export_image_as(self):
-        data = self.challengeList.currentItem().data(Qt.UserRole)
+        data = self.challengeEntries.currentItem().data(Qt.UserRole)
         data.image.build_full_image()
         fileName = QFileDialog().getSaveFileName(self, 'Save image', self.imageSavePath, 'PNG(*.png)')[0]
         if not fileName:
@@ -302,15 +303,15 @@ class window(QMainWindow):
         data.image.full.save(data.fileName, 'png')
         
     def new_list_item(self):
-        total = self.challengeList.count()
+        total = self.challengeEntries.count()
         name = self.challengeName.text() + ' ' + str(total+1).zfill(2)
         item = QListWidgetItem(name)
-        data = challenge(number = total+1, name = name)
-        data.image.write_challenge_number(str(total+1))
+        data = challengeEntry(number = total+1, name = name)
+        data.image.write_entry_number(str(total+1))
         item.setData(Qt.UserRole, data)
-        self.challengeList.insertItem(total, item)
-        self.challengeList.setCurrentRow(total)
-        self.challengeList.setFocus(True)
+        self.challengeEntries.insertItem(total, item)
+        self.challengeEntries.setCurrentRow(total)
+        self.challengeEntries.setFocus(True)
 
     def load_item(self, currentItem):
         if not currentItem:
@@ -318,32 +319,37 @@ class window(QMainWindow):
         self.rightSide['container'].setEnabled(True)
         data = currentItem.data(Qt.UserRole)
         if data.animeID is None:
-            self.animeInput['widget'].setText('')
+            self.animeIDInput['widget'].setText('')
         else:
-            self.animeInput['widget'].setText(str(data.animeID))
+            self.animeIDInput['widget'].setText(str(data.animeID))
         for key, item in data.status.items():
             if self.status.buttons[key].autoExclusive():
                 self.status.buttons[key].setAutoExclusive(False)
                 self.status.buttons[key].setChecked(False)
                 self.status.buttons[key].setAutoExclusive(True)
             self.status.buttons[key].setChecked(item)
-        self.challengeNumber['widget'].setText(str(data.number))
+        self.entryNumber['widget'].setText(str(data.number))
         self.tierChoice['widget'].setCurrentIndex(data.tierIndex)
-        self.challengeData['widget'].setPlainText(data.challenge)
+        self.entryData['widget'].setPlainText(data.challenge)
         self.minimumTime['widget'].setText(str(data.minimumTime))
         for item in imageLayers:
             self.change_image(data, item)
             
+    #TODO: add an overhead to the pickle for loading challenge name and username from file
     def save_list_items(self):
         fileName = QFileDialog().getSaveFileName(self, 'Save challenge list', self.challengeSavePath, 'ACLO(*.aclo)')[0]
         if not fileName:
             return False
         self.challengeSavePath = fileName.rstrip(fileName.split('\\')[-1])
         challengeList = []
-        for k in range(0, self.challengeList.count()):
-            name = self.challengeList.item(k).text()
-            data = self.challengeList.item(k).data(Qt.UserRole)
+        for k in range(0, self.challengeEntries.count()):
+            name = self.challengeEntries.item(k).text()
+            data = self.challengeEntries.item(k).data(Qt.UserRole)
             challengeList.append([name, data])
+        saveData = {
+                'name': self.challengeName.text(),
+                'username': self.username.text(),
+                }
         with open(fileName, 'wb') as f:
             pickle.dump(challengeList, f)
         return True
@@ -359,24 +365,24 @@ class window(QMainWindow):
         except:
             QErrorMessage().showMessage("Couldn't open file!")
             return
-        self.challengeList.clear()
+        self.challengeEntries.clear()
         for k, data in enumerate(dataList):
             item = QListWidgetItem(data[0])
             item.setData(Qt.UserRole, data[1])
-            self.challengeList.insertItem(k, item)
-        self.challengeList.setCurrentRow(k)
-        self.challengeList.setFocus(True)
+            self.challengeEntries.insertItem(k, item)
+        self.challengeEntries.setCurrentRow(k)
+        self.challengeEntries.setFocus(True)
         self.recentlyLoaded = True
            
     def challenge_name_update(self):
         name = self.challengeName.text()
-        for k in range(0, self.challengeList.count()):
-            number = self.challengeList.item(k).data(Qt.UserRole).number
+        for k in range(0, self.challengeEntries.count()):
+            number = self.challengeEntries.item(k).data(Qt.UserRole).number
             text = name + ' ' + str(number).zfill(2)
-            self.challengeList.item(k).setText(text)
+            self.challengeEntries.item(k).setText(text)
         
     def import_aniData(self):
-        data = self.challengeList.currentItem().data(Qt.UserRole)
+        data = self.challengeEntries.currentItem().data(Qt.UserRole)
         if data.get_info_from_id(self.username.text()):
             for item in ['image', 'title', 'dates', 'duration']:
                 self.change_image(data, item)
@@ -390,9 +396,9 @@ class window(QMainWindow):
         self.imageViewer[key].setPixmap(self.imageViewer[key].pixmap)
 
     def change_status(self, name, state, button):
-        data = self.challengeList.currentItem().data(Qt.UserRole)
+        data = self.challengeEntries.currentItem().data(Qt.UserRole)
         data.status[name] = state
-        if type(button) == type(QRadioButton()):
+        if isinstance(button, QRadioButton):
             if(state):
                 position = (35, 35)
                 data.image.add_icon(name, position)
@@ -410,67 +416,67 @@ class window(QMainWindow):
 
     def anime_id_update(self, data = False):
         if not data:
-            data = self.challengeList.currentItem().data(Qt.UserRole)
-        text = self.animeInput['widget'].text()
+            data = self.challengeEntries.currentItem().data(Qt.UserRole)
+        text = self.animeIDInput['widget'].text()
         try:
             data.animeID = int(text)
         except ValueError:
             if data.get_id_from_link(text):
-                self.animeInput['widget'].setText(str(data.animeID))
+                self.animeIDInput['widget'].setText(str(data.animeID))
             else:
                 self.myStatusBar.setStyleSheet('color: red')
                 self.myStatusBar.showMessage('Invalid input', 1000)
                 return
         self.myStatusBar.showMessage('Updated ID', 1000)
-        self.challengeList.currentItem().setData(Qt.UserRole, data)
+        self.challengeEntries.currentItem().setData(Qt.UserRole, data)
 
     def wrong_id(self):
         pass
 
     def number_update(self):
-        number = self.challengeNumber['widget'].text()
-        currentItem = self.challengeList.currentItem()
+        number = self.entryNumber['widget'].text()
+        currentItem = self.challengeEntries.currentItem()
         text = currentItem.text()
         text = text.strip(text.split()[-1]) + number.zfill(2)
         currentItem.setText(text)
         data = currentItem.data(Qt.UserRole)
         data.number = int(number)
-        data.image.write_challenge_number(str(data.number), 15)
+        data.image.write_entry_number(str(data.number), 15)
         self.change_image(data, 'number')
         
     def tier_update(self, index):
-        data = self.challengeList.currentItem().data(Qt.UserRole)
+        data = self.challengeEntries.currentItem().data(Qt.UserRole)
         data.tierIndex = index
         tier = self.tierChoice['widget'].currentText()
         color = self.tierChoice['widget'].currentData()
-        data.image.write_challenge_tier(tier, color = color)
+        data.image.write_entry_tier(tier, color = color)
         self.change_image(data, 'tier')
     
-    def challenge_text_update(self):
-        data = self.challengeList.currentItem().data(Qt.UserRole)
-        data.challenge = self.challengeData['widget'].toPlainText()
-        self.challengeData['timer'].start(500)
+    def entry_requirement_update(self):
+        data = self.challengeEntries.currentItem().data(Qt.UserRole)
+        data.challenge = self.entryData['widget'].toPlainText()
+        self.entryData['timer'].start(250)
         
-    def challenge_text_image_update(self):
-        data = self.challengeList.currentItem().data(Qt.UserRole)
-        data.image.write_challenge_text(data.challenge, 15)
+    def entry_requirement_image_update(self):
+        data = self.challengeEntries.currentItem().data(Qt.UserRole)
+        data.image.write_entry_text(data.challenge, 15)
         self.change_image(data, 'challenge')
     
     def minimum_time_update(self):
-        data = self.challengeList.currentItem().data(Qt.UserRole)
+        data = self.challengeEntries.currentItem().data(Qt.UserRole)
         if self.minimumTime['widget'].text():
             data.minimumTime = int(self.minimumTime['widget'].text())
         data.image.write_duration_text(data.minimumTime, data.episodeCount,
                                        data.episodeDuration, 15)
         self.change_image(data, 'duration')
 
-    def challengeList_key_events(self, event):
+    def challengeEntries_key_events(self, event):
         if event.key() == Qt.Key_Delete:
             self.rightSide['container'].setEnabled(False)
-            row = self.challengeList.currentRow()
-            self.challengeList.takeItem(row)
+            row = self.challengeEntries.currentRow()
+            self.challengeEntries.takeItem(row)
             row = max([0, row - 1])
-            self.challengeList.setCurrentRow(row)
+            self.challengeEntries.setCurrentRow(row)
 
     #Exit Application
     def closeEvent(self, event):
@@ -520,14 +526,14 @@ class buttonGroup():
         self.labels = {}
         self.box = {}
         self.box['box'] = QGroupBox()
-        self.box['box'].setStyleSheet('''
+        self.box['box'].setStyleSheet("""
                   QGroupBox {
                   font-weight: bold;
                   border: 1px solid #32414B;
                   border-radius: 4px;
                   padding: 2px;
                   margin-top: 0px;
-                  }''')
+                  }""")
         self.box['grid'] = QGridLayout()
         build_layout(self.box, 'box', 'grid', buttonSpacing, buttonMargins)
         self.box['label'] = QLabel(boxName)
@@ -565,7 +571,7 @@ class myStatusBar(QStatusBar):
     #Data storage classes
 ##############################################################################
 #Class to store the image information in
-class challenge:
+class challengeEntry:
     def __init__(self, name = '', number = 0):
         self.name = name
         self.image = animeImage((31, 35, 35, 255), (95, 104, 117, 255))
@@ -597,7 +603,7 @@ class challenge:
             self.animeID = int(words[pos])
             self.link = link
             return(True)
-        except:
+        except ValueError:
             return(False)
 
     def get_info_from_id(self, username = None):
@@ -686,7 +692,7 @@ class animeImage:
         newIcon = newIcon.resize((30,30))
         self.icons.paste(newIcon, position)
 
-    def write_challenge_number(self, number, fontSize = 20):
+    def write_entry_number(self, number, fontSize = 20):
         self.number = self.empty.copy()
         font = ImageFont.truetype(self.fontPathBold, fontSize)
         textSize = font.getsize(number)
@@ -694,7 +700,7 @@ class animeImage:
         y = 358 - textSize[1]//2
         self.number = draw_text(self.number, number, x, y, font, outline = 3)
         
-    def write_challenge_tier(self, tier, color = 'white', fontSize = 20):
+    def write_entry_tier(self, tier, color = 'white', fontSize = 20):
         self.tier = self.empty.copy()
         if tier == '':
             return
@@ -707,8 +713,8 @@ class animeImage:
         y = 350 - txtimg.size[1]//2
         self.tier.paste(txtimg, (x, y), txtimg)
         
-    def write_challenge_text(self, text, fontSize = 15):
-        self.challenge = self.empty.copy()
+    def write_entry_text(self, text, fontSize = 15):
+        self.requirement = self.empty.copy()
         maxWidth = 270
         maxHeight = 40
         text, font = text_fitter(maxWidth, maxHeight, text, fontSize,
@@ -716,7 +722,7 @@ class animeImage:
         textSize = font.getsize_multiline(text, spacing = 0)
         x = 20 + (maxWidth - textSize[0])//2
         y = 385
-        self.challenge = draw_text(self.challenge, text, x, y, alignment = 'center', outline = 1,
+        self.requirement = draw_text(self.requirement, text, x, y, alignment = 'center', outline = 1,
                                   font = font, textColor = 'white', shadowColor = 'black')
 
     def write_title_text(self, text, fontSize = 20):
@@ -792,16 +798,16 @@ class animeImage:
         
 
     def build_full_image(self):
-        self.full = Image.alpha_composite(self.base, self.glow)
-        self.full.paste(self.border, (0, 0), self.border)
-        self.full.paste(self.image, (0, 0), self.image)
-        self.full.paste(self.icons, (0, 0), self.icons)
-        self.full.paste(self.number, (0,0), self.number)
-        self.full.paste(self.tier, (0,0), self.tier)
-        self.full.paste(self.challenge, (0,0), self.challenge)
-        self.full.paste(self.title, (0,0), self.title)
-        self.full.paste(self.dates, (0,0), self.dates)
-        self.full.paste(self.duration, (0,0), self.duration)
+        full = Image.alpha_composite(self.base, self.glow)
+        full.paste(self.border, (0, 0), self.border)
+        full.paste(self.image, (0, 0), self.image)
+        full.paste(self.icons, (0, 0), self.icons)
+        full.paste(self.number, (0,0), self.number)
+        full.paste(self.tier, (0,0), self.tier)
+        full.paste(self.requirement, (0,0), self.requirement)
+        full.paste(self.title, (0,0), self.title)
+        full.paste(self.dates, (0,0), self.dates)
+        full.paste(self.duration, (0,0), self.duration)
 
 #Global functions
 ##############################################################################
@@ -810,12 +816,12 @@ def build_layout(target, containerKey, layoutKey, spacings=0, margins=0):
     if containerKey not in target:
         target[containerKey] = QWidget()
     target[containerKey].setLayout(target[layoutKey])
-    if type(spacings) == type([]):
+    if isinstance(spacings, list):
         target[layoutKey].setHorizontalSpacing(spacings[0])
         target[layoutKey].setVerticalSpacing(spacings[1])
     else:
         target[layoutKey].setSpacing(spacings)
-    if type(margins) == type([]):
+    if isinstance(margins, list):
         target[layoutKey].setContentsMargins(margins[0], margins[1], margins[2], margins[3])
     else:
         target[layoutKey].setContentsMargins(margins, margins, margins, margins)

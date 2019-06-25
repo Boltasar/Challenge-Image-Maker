@@ -85,7 +85,10 @@ def get_anime_data(animeID):
     		}
     dataVariables['animeID'] = animeID
     # Make the HTTP Api request
-    response = requests.post(url, json={'query': animeData, 'variables': dataVariables}).json()
+    try:
+        response = requests.post(url, json={'query': animeData, 'variables': dataVariables}).json()
+    except ConnectionError:
+        return None
     if response['data']['Media'] is None:
         return None
     else:
@@ -96,7 +99,10 @@ def get_user_data(animeID, username):
     dataVariables['animeID'] = animeID
     dataVariables['username'] = username
     # Make the HTTP Api request
-    response = requests.post(url, json={'query': userData, 'variables': dataVariables}).json()
+    try:
+        response = requests.post(url, json={'query': userData, 'variables': dataVariables}).json()
+    except ConnectionError:
+        return None
     if response['data']['MediaList'] is None:
         return None
     else:

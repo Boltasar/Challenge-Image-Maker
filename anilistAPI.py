@@ -78,11 +78,12 @@ username: The username to be querried for list entries
 # Here we define the API Url
 url = 'https://graphql.anilist.co'
 
+
 def get_anime_data(animeID):
     dataVariables = {
             'info': True,
             'multi': False,
-    		}
+            }
     dataVariables['animeID'] = animeID
     # Make the HTTP Api request
     try:
@@ -93,7 +94,8 @@ def get_anime_data(animeID):
         return None
     else:
         return(response['data']['Media'])
-        
+
+
 def get_user_data(animeID, username):
     dataVariables = {}
     dataVariables['animeID'] = animeID

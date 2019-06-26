@@ -11,7 +11,6 @@ import os
 import sys
 import math
 import datetime
-import pickle
 import json
 # Import PyQt for the GUI
 from PyQt5.QtCore import pyqtSlot, Qt, QTimer
@@ -52,10 +51,9 @@ imageLayers = [
 class window(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.imageSavePath = path
         self.challengePath = path
         self.fileName = None
-        self.exportPath = ''
+        self.exportPath = path
         self.entryNumbers = []
 
         self.main_screen()
@@ -74,8 +72,6 @@ class window(QMainWindow):
 
         # Create a universal menubar
         mainMenu = self.menuBar()
-        # Primary filemenu with basic actions like closing, opening and saving.
-        fileMenu = mainMenu.addMenu('&File')
 
         def add_action(parent, name, shortcut, tip, function):
             action = QAction(name, parent)
@@ -83,6 +79,9 @@ class window(QMainWindow):
             action.setStatusTip(tip)
             action.triggered.connect(function)
             parent.addAction(action)
+
+        # Primary filemenu with basic actions like closing, opening and saving.
+        fileMenu = mainMenu.addMenu('&File')
 
         add_action(fileMenu, '&New', 'Ctrl+N',
                    'New challenge', self.new_challenge)
@@ -132,7 +131,7 @@ class window(QMainWindow):
 
         self.connect_signals()
 
-        #self.load_challenge(previousSession)
+        self.load_challenge(previousSession)
 
         self.show()
         self.activateWindow()
@@ -215,7 +214,7 @@ class window(QMainWindow):
         # The button to export the image
         self.buttons['export'] = QPushButton('Export PNG')
         # The button to force a save as dialog
-        self.buttons['exportas'] = QPushButton('Export PNG As')
+        self.buttons['exportall'] = QPushButton('Export PNG All')
 
         # Placeholder image to give a feel for the eventual frame
         self.imageViewer = {'grid': QGridLayout()}
@@ -252,7 +251,7 @@ class window(QMainWindow):
         rightSide['layout'].addWidget(self.animeIDInput['container'], 0, 0)
         rightSide['layout'].addWidget(self.buttons['import'], 0, 1, Qt.AlignBottom)
         rightSide['layout'].addWidget(self.buttons['export'], 0, 2, Qt.AlignBottom)
-        rightSide['layout'].addWidget(self.buttons['exportas'], 0, 3, Qt.AlignBottom)
+        rightSide['layout'].addWidget(self.buttons['exportall'], 0, 3, Qt.AlignBottom)
         rightSide['layout'].addWidget(statusTier['container'], 1, 0, 1, 1)
         rightSide['layout'].addWidget(self.entryData['container'], 2, 0, 1, 1)
         rightSide['layout'].setRowStretch(2, 255)
@@ -286,27 +285,31 @@ class window(QMainWindow):
 
         self.buttons['import'].clicked.connect(self.import_aniData)
         self.buttons['export'].clicked.connect(self.export_image)
-        self.buttons['exportas'].clicked.connect(self.export_image_as)
+        self.buttons['exportall'].clicked.connect(self.export_all_images)
 
 # Events
 ##############################################################################
     def export_image(self):
         data = self.challengeEntries.currentItem().data(Qt.UserRole)
-        if not self.exportPath:
-            return self.export_image_as()
-        image = data.image.build_full_image()
-        image.save(data.fileName, 'png')
-
-    def export_image_as(self):
-        data = self.challengeEntries.currentItem().data(Qt.UserRole)
         fileName = QFileDialog().getSaveFileName(
             self, 'Save image', self.exportPath, 'PNG(*.png)')[0]
         if not fileName:
             return
-        data.fileName = fileName
-        self.imageSavePath = data.fileName.rstrip(data.fileName.split('\\')[-1])
+        self.exportPath = fileName.rstrip(fileName.split('\\')[-1])
         image = data.image.build_full_image()
-        image.save(data.fileName, 'png')
+        image.save(fileName, 'png')
+
+    def export_all_images(self):
+        fileName = QFileDialog().getExistingDirectory(
+            self, 'Save all images', self.exportPath)
+        if not fileName:
+            return
+        self.exportPath = fileName
+        for k in range(0, self.challengeEntries.count()):
+            data = self.challengeEntries.item(k).data(Qt.UserRole)
+            name = self.challengeEntries.item(k).text()
+            image = data.image.build_full_image()
+            image.save(fileName + '\\' + name + '.png', 'png')
 
     def new_challenge_entry(self):
         try:
@@ -330,7 +333,7 @@ class window(QMainWindow):
         if getattr(data, 'animeID', None) is None:
             self.animeIDInput['widget'].setText('')
         else:
-            self.animeIDInput[' widget'].setText(str(data.animeID))
+            self.animeIDInput['widget'].setText(str(data.animeID))
         for key, item in data.status.items():
             if self.status.buttons[key].autoExclusive():
                 self.status.buttons[key].setAutoExclusive(False)
@@ -356,7 +359,7 @@ class window(QMainWindow):
                 return
         self.challengeEntries.clear()
         self.entryNumbers = []
-		self.challengeName = ''
+        self.challengeName.setText('')
         self.rightSide['container'].setEnabled(False)
 
     def load_challenge(self, fileName=None):
@@ -366,31 +369,33 @@ class window(QMainWindow):
                 self.challengePath, 'ACLO(*.aclo)')[0]
         if not fileName:
             return
+        self.challengePath = fileName.rstrip(fileName.split('\\')[-1])
+        # Open the file or show error in case of failure
         try:
             with open(fileName, 'rb') as f:
-                saveData = pickle.load(f)
-        except (TypeError, pickle.UnpicklingError):
-            QMessageBox.warning(self, 'Warning!', "Couldn't open file!")
-            return
+                savedata = json.load(f)
         except FileNotFoundError:
             if fileName == previousSession:
                 return
             else:
                 QMessageBox.warning(self, 'Warning', "Couldn't find file!")
                 return
-        self.challengeName.setText(saveData['name'])
-        self.username.setText(saveData['username'])
-        self.entryNumbers = saveData['entryNumbers']
-        #self.exportPath = saveData['exportPath']
-        entries = saveData['entries']
+
+        self.challengeName.setText(savedata['name'])
+        self.username.setText(savedata['username'])
+        self.entryNumbers = savedata['entryNumbers']
+        self.exportPath = savedata['exportPath']
         self.challengeEntries.clear()
-        for k, data in enumerate(entries):
-            item = QListWidgetItem(data[0])
-            item.setData(Qt.UserRole, data[1])
-            self.challengeEntries.insertItem(k, item)
-        if 'k' in locals():
+        k = 0
+        for name, entrydata in savedata['entries'].items():
+            item = QListWidgetItem(name)
+            data = challengeEntry()
+            data.load_savedata(entrydata, self)
+            item.setData(Qt.UserRole, data)
+            self.challengeEntries.addItem(item)
             self.challengeEntries.setCurrentRow(k)
             self.challengeEntries.setFocus(True)
+            k += 1
 
     def save_challenge(self, fileName=None):
         if not fileName:
@@ -399,15 +404,15 @@ class window(QMainWindow):
         if not fileName:
             return False
         self.challengePath = fileName.rstrip(fileName.split('\\')[-1])
-        entries = []
+        entries = {}
         for k in range(0, self.challengeEntries.count()):
             name = self.challengeEntries.item(k).text()
             data = self.challengeEntries.item(k).data(Qt.UserRole)
             challengeData = {}
             for attr in data.savedAttributesList:
                 challengeData[attr] = getattr(data, attr, None)
-            entries.append([name, challengeData])
-        saveData = {
+            entries[name] = challengeData
+        savedata = {
                 'name': self.challengeName.text(),
                 'username': self.username.text(),
                 'entryNumbers': self.entryNumbers,
@@ -415,7 +420,7 @@ class window(QMainWindow):
                 'entries': entries
                 }
         with open(fileName, 'w') as f:
-            json.dump(saveData, f, indent=4)
+            json.dump(savedata, f, indent=4)
         return True
 
     def challenge_name_update(self):
@@ -482,7 +487,7 @@ class window(QMainWindow):
 
     def number_update(self):
         number = self.entryNumber['widget'].text().zfill(2)
-		row = self.challengeEntries.currentRow()
+        row = self.challengeEntries.currentRow()
         old = self.entryNumbers[row]
         self.entryNumbers[row] = number
         self.entryNumbers.sort()
@@ -495,7 +500,7 @@ class window(QMainWindow):
         currentItem.setText(text)
         data = currentItem.data(Qt.UserRole)
         data.number = int(number)
-        data.image.write_entry_number(number.lstrip(0), 15)
+        data.image.write_entry_number(number.lstrip('0'), 15)
         self.change_image(data, 'number')
 
     def tier_update(self, index):
@@ -540,7 +545,7 @@ class window(QMainWindow):
             self.save_challenge(previousSession)
             event.accept()
         except AttributeError:
-            event.accept()
+            pass
 
     # Screen positioning methods
 ##############################################################################
@@ -649,7 +654,7 @@ class challengeEntry:
         ----------
         number : int, optional
             Number of the challenge entry. The default is 0.
-			
+
         Returns
         -------
         None.
@@ -664,7 +669,7 @@ class challengeEntry:
         self.tierIndex = 0
         self.title = None
         self.imageLink = None
-        self.requirement = None
+        self.requirement = ''
         self.startDate = None
         self.completeDate = None
         self.minimumTime = 0
@@ -710,8 +715,20 @@ class challengeEntry:
         self.image.write_dates_text(self.startDate, self.completeDate, 15)
         return True
 
-    def build_all_image_layers(self):
-        pass
+    def load_savedata(self, savedata, app):
+        for key in savedata:
+            setattr(self, key, savedata[key])
+        self.image.write_entry_number(str(self.number))
+        tier = app.tierChoice['widget'].itemText(self.tierIndex)
+        tierColor = app.tierChoice['widget'].itemData(self.tierIndex)
+        self.image.write_entry_tier(tier, tierColor)
+        self.image.write_entry_text(self.requirement)
+        if self.title:
+            self.image.write_title_text(self.title)
+            self.image.open_image(self.imageLink)
+            self.image.write_duration_text(self.minimumTime, self.episodeCount,
+                                           self.episodeDuration, 15)
+            self.image.write_dates_text(self.startDate, self.completeDate, 15)
 
 
 class animeImage:
@@ -785,7 +802,7 @@ class animeImage:
         y = 358 - textSize[1]//2
         self.number = draw_text(self.number, number, x, y, font, outline=3)
 
-    def write_entry_tier(self, tier, color = 'white', fontSize = 20):
+    def write_entry_tier(self, tier, color='white', fontSize=20):
         self.tier = self.empty.copy()
         if tier == '':
             return
@@ -957,7 +974,7 @@ def draw_text(image, text, x, y, font, textColor='white', shadowColor='black',
               outline=0, alignment='left', spacing=0):
     draw = ImageDraw.Draw(image)
 
-    for flow in range(outline,outline+1):
+    for flow in range(outline, outline+1):
         for shift in range(-flow, flow+1):
             draw.multiline_text((x+shift, y+(flow-abs(shift))), text,
                                 font=font, fill=shadowColor, align=alignment)

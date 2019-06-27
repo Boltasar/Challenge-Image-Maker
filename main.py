@@ -49,28 +49,38 @@ imageLayers = [
 
 
 class window(QMainWindow):
+    # The class that contains all the gui code
     def __init__(self):
+        # Initiates a few instance variables before building the rest
         super().__init__()
         self.challengePath = path
         self.fileName = None
         self.exportPath = path
         self.entryNumbers = []
 
-        self.main_screen()
+        self.main_window()
         self.home()
 
-    def main_screen(self):
+        self.connect_signals()
+
+        self.load_challenge(previousSession)
+
+        self.show()
+        self.activateWindow()
+        # End of home body functions
+
+    def main_window(self):
+        # Builds the main window and menubar
         self.setFixedSize(900, 650)
         self.setWindowTitle('Anime Watching Challenge Image Maker')
         self.setWindowIcon(QIcon(resourcesImagePath + 'awc.ico'))
-        self.center_screen()
+        center_screen(self)
 
-        # Create a universal statusbar
-        self.myStatusBar = myStatusBar()
-        self.setStatusBar(self.myStatusBar)
-        self.myStatusBar.setSizeGripEnabled(False)
+        # Create the main statusbar
+        self.statusBar()
+        self.statusBar().setSizeGripEnabled(False)
 
-        # Create a universal menubar
+        # Create the main menubar
         mainMenu = self.menuBar()
 
         def add_action(parent, name, shortcut, tip, function):
@@ -96,6 +106,7 @@ class window(QMainWindow):
 ##############################################################################
 
     def home(self):
+        # Builds the left, challenge part of the program
         self.challengeName = QLineEdit(self)
         self.challengeName.setPlaceholderText(
             "Input the challenge's name here.")
@@ -128,14 +139,6 @@ class window(QMainWindow):
         build_layout(mainGrid, 'widget', 'layout', 0, 2)
 
         self.setCentralWidget(mainGrid['widget'])
-
-        self.connect_signals()
-
-        self.load_challenge(previousSession)
-
-        self.show()
-        self.activateWindow()
-        # End of home body functions
 ##############################################################################
 
     def populate_right_side(self, rightSide):
@@ -151,7 +154,7 @@ class window(QMainWindow):
 
         # Building the groupbox
         self.status = buttonGroup('Status')
-        self.status.batch_buttons(statusDictionary)
+        self.status.add_button_batch(statusDictionary)
 
         # Building the tier dropbox
         self.tierChoice = {}
@@ -263,6 +266,7 @@ class window(QMainWindow):
     # Connecting Signals with Events
 ##############################################################################
     def connect_signals(self):
+        # Connects the signals.
         self.addEntry.clicked.connect(self.new_challenge_entry)
         self.challengeEntries.currentItemChanged.connect(self.load_entry)
         self.challengeEntries.keyPressEvent = self.challengeEntries_key_events
@@ -290,6 +294,7 @@ class window(QMainWindow):
 # Events
 ##############################################################################
     def export_image(self):
+        # Asks for a save location and name and saves the current entry image.
         data = self.challengeEntries.currentItem().data(Qt.UserRole)
         fileName = QFileDialog().getSaveFileName(
             self, 'Save image', self.exportPath, 'PNG(*.png)')[0]
@@ -300,6 +305,7 @@ class window(QMainWindow):
         image.save(fileName, 'png')
 
     def export_all_images(self):
+        # Asks for a save directory and exports all entries images.
         fileName = QFileDialog().getExistingDirectory(
             self, 'Save all images', self.exportPath)
         if not fileName:
@@ -312,6 +318,7 @@ class window(QMainWindow):
             image.save(fileName + '\\' + name + '.png', 'png')
 
     def new_challenge_entry(self):
+        # Builds a new entry and gives it the first missing positive integer.
         try:
             number = next(a for a, b in enumerate(self.entryNumbers, 1) if a != int(b))
         except StopIteration:
@@ -326,6 +333,7 @@ class window(QMainWindow):
         self.challengeEntries.setCurrentRow(number-1)
 
     def load_entry(self, currentItem):
+        # Loads in the visual information of the selected entry.
         if not currentItem:
             return
         self.rightSide['container'].setEnabled(True)
@@ -348,6 +356,7 @@ class window(QMainWindow):
             self.change_image(data, item)
 
     def new_challenge(self):
+        # Clears the current challenge.
         if self.challengeEntries.count():
             choice = QMessageBox.question(
                 self, 'Make new challenge',
@@ -363,6 +372,12 @@ class window(QMainWindow):
         self.rightSide['container'].setEnabled(False)
 
     def load_challenge(self, fileName=None):
+        """
+        Loads the challenge data from a json file.
+        
+        :fileName: pathname to the challenge that was previously open.
+        :returns: None
+        """
         if not fileName:
             fileName = QFileDialog().getOpenFileName(
                 self, 'Load challenge list',
@@ -398,6 +413,7 @@ class window(QMainWindow):
             k += 1
 
     def save_challenge(self, fileName=None):
+        # Saves the challenge data to a json file.
         if not fileName:
             fileName = QFileDialog().getSaveFileName(
                 self, 'Save challenge', self.challengePath, 'ACLO(*.aclo)')[0]
@@ -424,6 +440,7 @@ class window(QMainWindow):
         return True
 
     def challenge_name_update(self):
+        # Updates all entry names to the new challenge name.
         name = self.challengeName.text()
         self.challengeEntries.setSortingEnabled(False)
         for k in range(0, self.challengeEntries.count()):
@@ -432,21 +449,36 @@ class window(QMainWindow):
             self.challengeEntries.item(k).setText(text)
         self.challengeEntries.setSortingEnabled(True)
 
-    def import_aniData(self):
+    def anime_id_update(self):
+        # Checks if the input is valid. Updates the data if it is.
         data = self.challengeEntries.currentItem().data(Qt.UserRole)
-        if data.get_info_from_id(self.username.text()):
-            for item in ['image', 'title', 'dates', 'duration']:
-                self.change_image(data, item)
-        else:
-            self.wrong_id()
+        text = self.animeIDInput['widget'].text()
+        try:
+            data.animeID = int(text)
+        except ValueError:
+            if data.get_id_from_link(text):
+                self.animeIDInput['widget'].setText(str(data.animeID))
+            else:
+                self.animeIDInput['widget'].setText('')
+                self.statusBar().showMessage('Invalid input', 1000)
+        self.import_aniData()
+
+    def import_aniData(self):
+        # Imports the data from the internet.
+        data = self.challengeEntries.currentItem().data(Qt.UserRole)
+        data.get_info_from_id(self.username.text())
+        for item in ['image', 'title', 'dates', 'duration']:
+            self.change_image(data, item)
 
     def change_image(self, data, key):
+        # Updates the requested image layer.
         self.imageViewer[key].image = getattr(data.image, key, data.image.empty)
         self.imageViewer[key].Qt = ImageQt(self.imageViewer[key].image)
         self.imageViewer[key].pixmap = QPixmap.fromImage(self.imageViewer[key].Qt)
         self.imageViewer[key].setPixmap(self.imageViewer[key].pixmap)
 
     def change_status(self, name, state, button):
+        # Builds the icon and border glow according to selected check/radiobox
         entry = self.challengeEntries.currentItem()
         data = entry.data(Qt.UserRole)
         data.status[name] = state
@@ -466,26 +498,15 @@ class window(QMainWindow):
                 data.image.build_glow(button.glowColor, 8)
                 self.change_image(data, 'glow')
 
-    def anime_id_update(self, data=False):
-        if not data:
-            data = self.challengeEntries.currentItem().data(Qt.UserRole)
-        text = self.animeIDInput['widget'].text()
-        try:
-            data.animeID = int(text)
-        except ValueError:
-            if data.get_id_from_link(text):
-                self.animeIDInput['widget'].setText(str(data.animeID))
-            else:
-                self.myStatusBar.setStyleSheet('color: red')
-                self.myStatusBar.showMessage('Invalid input', 1000)
-                return
-        self.myStatusBar.showMessage('Updated ID', 1000)
-        self.challengeEntries.currentItem().setData(Qt.UserRole, data)
-
-    def wrong_id(self):
-        pass
-
     def number_update(self):
+        """
+        Updates the challenge number.
+
+        Updates the number in all three tracking instances:
+        self.entryNumbers: The list used for finding first missing positive integer.
+        entry.text(): The name of the challenge entry.
+        data.number: The data that's used for the image.
+        """
         number = self.entryNumber['widget'].text().zfill(2)
         row = self.challengeEntries.currentRow()
         old = self.entryNumbers[row]
@@ -504,6 +525,7 @@ class window(QMainWindow):
         self.change_image(data, 'number')
 
     def tier_update(self, index):
+        # Updates the tier text and image
         data = self.challengeEntries.currentItem().data(Qt.UserRole)
         data.tierIndex = index
         tier = self.tierChoice['widget'].currentText()
@@ -512,16 +534,20 @@ class window(QMainWindow):
         self.change_image(data, 'tier')
 
     def entry_requirement_update(self):
+        # Updates the requirement text
         data = self.challengeEntries.currentItem().data(Qt.UserRole)
         data.requirement = self.entryData['widget'].toPlainText()
+        # Timer to put a delay on firing the resize code since it gets resource intensive otherwise.
         self.entryData['timer'].start(250)
 
     def entry_requirement_image_update(self):
+        # Updates the requirement image
         data = self.challengeEntries.currentItem().data(Qt.UserRole)
-        data.image.write_entry_text(data.requirement, 15)
+        data.image.write_entry_requirement(data.requirement, 15)
         self.change_image(data, 'requirement')
 
     def minimum_time_update(self):
+        # Updates the minimum time and image.
         data = self.challengeEntries.currentItem().data(Qt.UserRole)
         if self.minimumTime['widget'].text():
             data.minimumTime = int(self.minimumTime['widget'].text())
@@ -530,6 +556,7 @@ class window(QMainWindow):
         self.change_image(data, 'duration')
 
     def challengeEntries_key_events(self, event):
+        # Catches the delete key for challenge entry removal
         if event.key() == Qt.Key_Delete:
             if self.challengeEntries.count():
                 self.rightSide['container'].setEnabled(False)
@@ -549,13 +576,6 @@ class window(QMainWindow):
 
     # Screen positioning methods
 ##############################################################################
-    def center_screen(self):
-        frameGm = self.frameGeometry()
-        screen = QApplication.desktop().screenNumber(
-                QApplication.desktop().cursor().pos())
-        centerPoint = QApplication.desktop().screenGeometry(screen).center()
-        frameGm.moveCenter(centerPoint)
-        self.move(frameGm.topLeft())
 
 
 # Custom Widget Classes
@@ -585,8 +605,8 @@ class buttonGroup():
         self.box['layout'].addWidget(self.box['box'])
         build_layout(self.box, 'container', 'layout', boxSpacing, boxMargins)
 
-    def add_button(
-            self, name, exclusive=False, checked=False, color=None):
+    def add_button(self, name, exclusive=False, checked=False, color=None):
+        # Adds a button to the button group
         column = len(self.buttons)
         if exclusive:
             self.buttons[name] = QRadioButton()
@@ -599,20 +619,10 @@ class buttonGroup():
         self.box['grid'].addWidget(
             self.labels[name], 1, column, Qt.AlignCenter)
 
-    def batch_buttons(self, buttonsDictionary={}):
+    def add_button_batch(self, buttonsDictionary={}):
+        # Calls add button for every entry in the input dictionary
         for key, typelist in buttonsDictionary.items():
             self.add_button(key, typelist[0], typelist[1], typelist[2])
-
-
-class myStatusBar(QStatusBar):
-    # Specialized statusBar
-    def __init__(self, parent=None):
-        super().__init__(parent=parent)
-
-    @pyqtSlot()
-    def clearMessage(self):
-        self.setStyleSheet('color: white')
-        super().clearMessage()
 
 
 # Data storage classes
@@ -645,20 +655,16 @@ class challengeEntry:
         'episodeCount', 'episodeDuration'
     ]
 
-    # Constructor to initialize the instance variables
     def __init__(self, number=0):
         """
         The construct for challengeEntry class.
-
-        Parameters
-        ----------
-        number : int, optional
-            Number of the challenge entry. The default is 0.
+        
+        Args:
+            number (int) default=0: Number of the challenge entry.
 
         Returns
         -------
         None.
-
         """
         self.image = animeImage((31, 35, 35, 255), (95, 104, 117, 255))
         self.animeID = None
@@ -693,6 +699,7 @@ class challengeEntry:
             return(False)
 
     def get_info_from_id(self, username=None):
+        # Retrieves Anilist info with the ID
         anime = anilistAPI.get_anime_data(self.animeID)
         if not anime:
             return False
@@ -716,13 +723,14 @@ class challengeEntry:
         return True
 
     def load_savedata(self, savedata, app):
+        # Builds the image layers based on savedata
         for key in savedata:
             setattr(self, key, savedata[key])
         self.image.write_entry_number(str(self.number))
         tier = app.tierChoice['widget'].itemText(self.tierIndex)
         tierColor = app.tierChoice['widget'].itemData(self.tierIndex)
         self.image.write_entry_tier(tier, tierColor)
-        self.image.write_entry_text(self.requirement)
+        self.image.write_entry_requirement(self.requirement)
         if self.title:
             self.image.write_title_text(self.title)
             self.image.open_image(self.imageLink)
@@ -732,6 +740,7 @@ class challengeEntry:
 
 
 class animeImage:
+    # A class to save and work all the image part of the data.
     def __init__(self, baseColor, borderColor):
         self.empty = Image.new('RGBA', (310, 540), (0, 0, 0, 0))
         self.base = round_rectangle((310, 540), 10, baseColor)
@@ -752,6 +761,7 @@ class animeImage:
         self.duration = self.empty.copy()
 
     def open_image(self, url):
+        # Loads the image from the anilist server
         image = Image.open(requests.get(url, stream=True).raw)
         width = 230
         height = 320
@@ -771,6 +781,7 @@ class animeImage:
         self.image.paste(image, (40, (height - croppedHeight) // 2 + 40))
 
     def build_border(self, borderColor, fillColor):
+        # Builds a border around the anime image
         border = round_rectangle((240, 330), 5, borderColor)
         fill = Image.new('RGBA', (230, 320), fillColor)
         self.border = self.empty.copy()
@@ -778,6 +789,7 @@ class animeImage:
         self.border.paste(fill, (40, 40))
 
     def build_glow(self, color,  radius):
+        # Builds a glow around the border
         alpha = self.empty.copy()
         radiusHalved = radius//2
         box = round_rectangle((240 + radius, 330 + radius),
@@ -790,11 +802,13 @@ class animeImage:
         self.glow.putalpha(alpha)
 
     def add_icon(self, name, position):
+        # Adds an icon at the requested position
         newIcon = Image.open(resourcesImagePath + name.lower() + '.png')
         newIcon = newIcon.resize((30, 30))
         self.icons.paste(newIcon, position)
 
     def write_entry_number(self, number, fontSize=20):
+        # Builds the number layer
         self.number = self.empty.copy()
         font = ImageFont.truetype(self.fontPathBold, fontSize)
         textSize = font.getsize(number)
@@ -803,6 +817,7 @@ class animeImage:
         self.number = draw_text(self.number, number, x, y, font, outline=3)
 
     def write_entry_tier(self, tier, color='white', fontSize=20):
+        # Builds the tier layer
         self.tier = self.empty.copy()
         if tier == '':
             return
@@ -817,7 +832,8 @@ class animeImage:
         y = 350 - txtimg.size[1]//2
         self.tier.paste(txtimg, (x, y), txtimg)
 
-    def write_entry_text(self, text, fontSize=15):
+    def write_entry_requirement(self, text, fontSize=15):
+        # Builds the requirement layer
         self.requirement = self.empty.copy()
         maxWidth = 270
         maxHeight = 40
@@ -831,6 +847,7 @@ class animeImage:
             font=font, textColor='white', shadowColor='black')
 
     def write_title_text(self, text, fontSize=20):
+        # Builds the title text layer
         self.title = self.empty.copy()
         maxWidth = 270
         maxHeight = 40
@@ -844,10 +861,12 @@ class animeImage:
             font=font, textColor='white', shadowColor='black')
 
     def write_dates_text(self, startDate, completeDate, fontSize=15):
+        # Builds the dates layer
         start = 'Start: {day}/{month}/{year}'
         if startDate['day']:
             if datetime.datetime.now().year == startDate['year']:
                 startDate['year'] = ''
+                # Omits the year if the show was started this year.
         else:
             startDate['day'] = startDate['month'] = '??'
             startDate['year'] = ''
@@ -882,6 +901,7 @@ class animeImage:
                                shadowColor='black')
 
     def write_duration_text(self, minTime, epCount, epDuration, fontSize=15):
+        # Builds the duration layer
         # Clear previous text
         self.duration = self.empty.copy()
         # Build text
@@ -907,6 +927,7 @@ class animeImage:
                                   textColor='white', shadowColor='black')
 
     def build_full_image(self):
+        # Pastes all layers into a final image and returns it.
         full = Image.alpha_composite(self.base, self.glow)
         full.paste(self.border, (0, 0), self.border)
         full.paste(self.image, (0, 0), self.image)
@@ -921,10 +942,18 @@ class animeImage:
 
 # Global functions
 ##############################################################################
+def center_screen(window):
+    # Centers the window on the screen the mouse is on
+    frameGm = window.frameGeometry()
+    screen = QApplication.desktop().screenNumber(
+            QApplication.desktop().cursor().pos())
+    centerPoint = QApplication.desktop().screenGeometry(screen).center()
+    frameGm.moveCenter(centerPoint)
+    window.move(frameGm.topLeft())
 
 
 def build_layout(target, containerKey, layoutKey, spacings=0, margins=0):
-    # A method of universalizing the building of a widget around a layout
+    # Builds a widget around a layout
     if containerKey not in target:
         target[containerKey] = QWidget()
     target[containerKey].setLayout(target[layoutKey])
@@ -941,6 +970,7 @@ def build_layout(target, containerKey, layoutKey, spacings=0, margins=0):
 
 
 def text_fitter(maxWidth, maxHeight, text, fontSize, fontPath, spacing=0):
+    # Resizes a text until it fits the requested width and height
     font = ImageFont.truetype(fontPath, fontSize)
     textsize = font.getsize_multiline(text, spacing=spacing)
     if textsize[0] < maxWidth and textsize[1] < maxHeight:
@@ -972,6 +1002,7 @@ def text_fitter(maxWidth, maxHeight, text, fontSize, fontPath, spacing=0):
 
 def draw_text(image, text, x, y, font, textColor='white', shadowColor='black',
               outline=0, alignment='left', spacing=0):
+    # Draws the text on the image with a potential outline
     draw = ImageDraw.Draw(image)
 
     for flow in range(outline, outline+1):
@@ -987,7 +1018,7 @@ def draw_text(image, text, x, y, font, textColor='white', shadowColor='black',
 
 
 def round_corner(radius, fill):
-    """Draw a round corner"""
+    # Draws a round corner
     corner = Image.new('RGBA', (radius, radius), (0, 0, 0, 0))
     draw = ImageDraw.Draw(corner)
     draw.pieslice((0, 0, radius * 2, radius * 2), 180, 270, fill=fill)
@@ -995,7 +1026,7 @@ def round_corner(radius, fill):
 
 
 def round_rectangle(size, radius, fill):
-    """Draw a rounded rectangle"""
+    # Draws a rounded rectangle
     width, height = size
     rectangle = Image.new('RGBA', size, fill)
     corner = round_corner(radius, fill)

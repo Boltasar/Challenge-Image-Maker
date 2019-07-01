@@ -213,7 +213,7 @@ class window(QMainWindow):
         # Build the buttons
         self.buttons = {}
         # The button to import the data from anilist
-        self.buttons['import'] = QPushButton('Import AniData')
+        self.buttons['update'] = QPushButton('Update AniData')
         # The button to export the image
         self.buttons['export'] = QPushButton('Export PNG')
         # The button to force a save as dialog
@@ -252,7 +252,7 @@ class window(QMainWindow):
         # Build a container widget for the right side of the program
         rightSide['layout'] = QGridLayout()
         rightSide['layout'].addWidget(self.animeIDInput['container'], 0, 0)
-        rightSide['layout'].addWidget(self.buttons['import'], 0, 1, Qt.AlignBottom)
+        rightSide['layout'].addWidget(self.buttons['update'], 0, 1, Qt.AlignBottom)
         rightSide['layout'].addWidget(self.buttons['export'], 0, 2, Qt.AlignBottom)
         rightSide['layout'].addWidget(self.buttons['exportall'], 0, 3, Qt.AlignBottom)
         rightSide['layout'].addWidget(statusTier['container'], 1, 0, 1, 1)
@@ -287,7 +287,7 @@ class window(QMainWindow):
             item.toggled.connect(lambda state, name=key, button=item:
                                  self.change_status(name, state, button))
 
-        self.buttons['import'].clicked.connect(self.import_aniData)
+        self.buttons['update'].clicked.connect(self.import_aniData)
         self.buttons['export'].clicked.connect(self.export_image)
         self.buttons['exportall'].clicked.connect(self.export_all_images)
 

@@ -27,20 +27,21 @@ class challengeDialog(QDialog):
             layout.addWidget(importer, 1, 0, Qt.AlignCenter)
 
             cancel = QPushButton('Cancel')
-            cancel.clicked.connect(self.close)
+            cancel.clicked.connect(self.reject)
             layout.addWidget(cancel, 1, 1, Qt.AlignCenter)
 
         self.setLayout(layout)
         self.setWindowTitle(title)
+        self.setFixedSize(900, 650)
         self.setWindowModality(True)
-        self.exec_()
 
     @classmethod
     def importer(cls, parent=None):
         return cls(parent=parent, importer=True, title='Import Challenge Code')
 
     def import_event(self):
-        text = self.post.text().split('\n')
+        text = self.post.toPlainText().split('\n')
+        name = None
         while True:
             try:
                 line = text.pop(0)
@@ -56,12 +57,16 @@ class challengeDialog(QDialog):
             choice = QMessageBox.question(
                     self, 'Failed Import',
                     "Couldn't find the name in this challenge code\n"
-                    + "Try new code?", QMessageBox.Yes | QMessageBox.Quit)
+                    + "Try new code?", QMessageBox.Yes | QMessageBox.Cancel)
             if choice == QMessageBox.Yes:
                 return
             else:
-                self.close()
-        challenge_entries = []
+                self.reject()
+                return
+        self.output = {}
+        self.output['name'] = name
+        self.output['entries'] = []
+        self.output['numbers'] = []
         while text:
             line = text.pop(0)
             index = line.split('.')[0]
@@ -70,16 +75,18 @@ class challengeDialog(QDialog):
                 try:
                     number = 'b' + index.split()[1]
                 except IndexError:
-                    number = 'b1'
+                    number = 'b'
             else:
                 try:
                     int(index)
-                    number = index
+                    number = index.zfill(2)
                 except ValueError:
                     continue
+            self.output['numbers'].append(number)
             entry = challengeEntry(number)
-
-        self.close()
+            entry.requirement = line.split('__')[1]
+            self.output['entries'].append(entry)
+        self.accept()
 
 
 def challenge_code_decompiler():

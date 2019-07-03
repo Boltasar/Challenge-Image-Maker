@@ -4,7 +4,7 @@ Created on Tue Jul  2 16:37:25 2019
 
 @author: nxf52810
 """
-import os
+
 import math
 import datetime
 # Import PIL for the image editing
@@ -13,10 +13,8 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont
 import requests
 # Local module for interacting with the anilist API.
 import anilistAPI
+from config import RESOURCES_FONT_PATH, RESOURCES_IMAGE_PATH, STATUS_DICTIONARY
 
-PATH = os.getcwd()
-RESOURCES_FONT_PATH = PATH + '\\resources\\fonts\\'
-RESOURCES_IMAGE_PATH = PATH + '\\resources\\images\\'
 
 # Class to store the image information in
 class challengeEntry:
@@ -46,7 +44,7 @@ class challengeEntry:
         'episodeCount', 'episodeDuration'
     ]
 
-    def __init__(self, number=0, status_options={}):
+    def __init__(self, number=0):
         """
         The construct for challengeEntry class.
 
@@ -60,7 +58,7 @@ class challengeEntry:
         self.image = animeImage((31, 35, 35, 255), (95, 104, 117, 255))
         self.animeID = None
         self.status = {}
-        for key, item in status_options.items():
+        for key, item in STATUS_DICTIONARY.items():
             self.status[key] = item[1]
         self.number = number
         self.tierIndex = 0

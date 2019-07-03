@@ -7,7 +7,6 @@ Small program that helps generate the images used in several AWC submission post
 @author: Bram Hermsen
 """
 
-import os
 import json
 # Import PyQt for the GUI
 from PyQt5.QtCore import Qt, QTimer
@@ -23,26 +22,17 @@ import qdarkstyle
 from PIL.ImageQt import ImageQt
 from challenge_data import challengeEntry
 from challenge_parser import challengeDialog
-
-PATH = os.getcwd()
-RESOURCES_IMAGE_PATH = PATH + '\\resources\\images\\'
-PREVIOUS_SESSION = PATH + '\\PREVIOUS-SESSION.aclo'
-
-
-STATUS_DICTIONARY = {
-    'Complete': [True, False, 'Green'], 'Watching': [True, False, 'Blue'],
-    'Decided': [True, False, 'Red'], 'Undecided': [True, True, 'White'],
-    'Previously_Watched': [True, False, 'Orange'],
-    'Rewatch': [False, False, None]
-    }
-IMAGELAYERS = [
-    'base', 'glow', 'border', 'image', 'icons', 'number', 'tier',
-    'requirement', 'title', 'dates', 'duration'
-    ]
+from config import PATH, PREVIOUS_SESSION, STATUS_DICTIONARY, RESOURCES_IMAGE_PATH
 
 
 class window(QMainWindow):
     # The class that contains all the gui code
+
+    # Class constants
+    IMAGELAYERS = (
+        'base', 'glow', 'border', 'image', 'icons', 'number', 'tier',
+        'requirement', 'title', 'dates', 'duration')
+
     def __init__(self):
         # Initiates a few instance variables before building the rest
         super().__init__()
@@ -100,7 +90,7 @@ class window(QMainWindow):
 
         add_action(porterMenu, '&Import challenge', 'Ctrl+I',
                    'Import challenge from challenge code',
-                   lambda: challengeDialog.importer())
+                   self.import_from_challenge_code)
         # End of main body functions
 ##############################################################################
 
@@ -144,7 +134,8 @@ class window(QMainWindow):
         # Add a text input field for the user to define the anime id
         self.animeIDInput = {}
         self.animeIDInput['widget'] = QLineEdit()
-        self.animeIDInput['widget'].setPlaceholderText("Type the link to the anime page or its ID")
+        self.animeIDInput['widget'].setPlaceholderText(
+                "Type the link to the anime page or its ID")
         self.animeIDInput['label'] = QLabel('AnimeID')
         self.animeIDInput['layout'] = QVBoxLayout()
         self.animeIDInput['layout'].addWidget(self.animeIDInput['label'])
@@ -220,7 +211,7 @@ class window(QMainWindow):
 
         # Placeholder image to give a feel for the eventual frame
         self.imageViewer = {'grid': QGridLayout()}
-        for item in IMAGELAYERS:
+        for item in self.IMAGELAYERS:
             self.imageViewer[item] = QLabel()
             self.imageViewer[item].setFixedSize(310, 540)
             self.imageViewer['grid'].addWidget(self.imageViewer[item], 0, 0, Qt.AlignCenter)
@@ -319,13 +310,13 @@ class window(QMainWindow):
     def new_challenge_entry(self):
         # Builds a new entry and gives it the first missing positive integer.
         try:
-            number = next(a for a, b in enumerate(self.entryNumbers, 1) if a != int(b))
+            number = next(a for a, b in enumerate(self.entryNumbers, 1) if str(a).zfill(2) < b)
         except StopIteration:
             number = len(self.entryNumbers) + 1
         self.entryNumbers.insert(number-1, str(number).zfill(2))
         name = self.challengeName.text() + ' ' + str(number).zfill(2)
         item = QListWidgetItem(name)
-        data = challengeEntry(number=number, status_options=STATUS_DICTIONARY)
+        data = challengeEntry(number=number)
         data.image.write_entry_number(str(number))
         item.setData(Qt.UserRole, data)
         self.challengeEntries.addItem(item)
@@ -351,7 +342,7 @@ class window(QMainWindow):
         self.tierChoice['widget'].setCurrentIndex(data.tierIndex)
         self.entryRequirement['widget'].setPlainText(data.requirement)
         self.minimumTime['widget'].setText(str(data.minimumTime))
-        for item in IMAGELAYERS:
+        for item in self.IMAGELAYERS:
             self.change_image(data, item)
 
     def new_challenge(self):
@@ -440,6 +431,11 @@ class window(QMainWindow):
         with open(fileName, 'w') as f:
             json.dump(savedata, f, indent=4)
         return True
+
+    def import_from_challenge_code(self):
+        importData = challengeDialog.importer(self)
+        if importData.exec_():
+            pass
 
     def challenge_name_update(self):
         # Updates all entry names to the new challenge name.
@@ -576,9 +572,6 @@ class window(QMainWindow):
         except AttributeError:
             pass
 
-    # Screen positioning methods
-##############################################################################
-
 
 # Custom Widget Classes
 ##############################################################################
@@ -625,10 +618,6 @@ class buttonGroup():
         # Calls add button for every entry in the input dictionary
         for key, typelist in buttonsDictionary.items():
             self.add_button(key, typelist[0], typelist[1], typelist[2])
-
-
-# Data storage classes
-##############################################################################
 
 
 # Global functions

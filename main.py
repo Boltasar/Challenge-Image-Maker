@@ -46,7 +46,7 @@ class window(QMainWindow):
 
         self.connect_signals()
 
-        self.load_challenge(PREVIOUS_SESSION)
+        self.load_challenge_prompt(PREVIOUS_SESSION)
 
         self.show()
         self.activateWindow()
@@ -79,12 +79,12 @@ class window(QMainWindow):
         add_action(fileMenu, '&New', 'Ctrl+N',
                    'New challenge', self.new_challenge)
         add_action(fileMenu, '&Open', 'Ctrl+O',
-                   'Open challenge', self.load_challenge)
+                   'Open challenge', self.load_challenge_prompt)
         add_action(fileMenu, '&Save', 'Ctrl+S',
                    'Save challenge', self.save_challenge)
         fileMenu.addSeparator()
         add_action(fileMenu, '&Quit', 'Ctrl+Q',
-                   'Close the application', self.closeEvent)
+                   'Close the application', self.close)
 
         porterMenu = mainMenu.addMenu('Im/Ex&port')
 
@@ -361,7 +361,7 @@ class window(QMainWindow):
         self.challengeName.setText('')
         self.rightSide['container'].setEnabled(False)
 
-    def load_challenge(self, fileName=None):
+    def load_challenge_prompt(self, fileName=None):
         """
         Loads the challenge data from a json file.
 
@@ -385,8 +385,10 @@ class window(QMainWindow):
             else:
                 QMessageBox.warning(self, 'Warning', "Couldn't find file!")
                 return
+        self.load_challenge_data(savedata)
 
-        self.statusBar().showMessage('Loading Anime Challenge List Object')
+    def load_challenge_data(self, savedata):
+        self.statusBar().showMessage('Loading Anime Challenge Data')
         self.challengeName.setText(savedata['name'])
         self.username.setText(savedata['username'])
         self.entryNumbers = savedata['entryNumbers']
@@ -433,9 +435,24 @@ class window(QMainWindow):
         return True
 
     def import_from_challenge_code(self):
-        importData = challengeDialog.importer(self)
+        data = challengeDialog.importer(self)
         if importData.exec_():
-            pass
+            if self.challengeEntries.count():
+                choice = QMessageBox.question(
+                    self, 'Make new challenge',
+                    'Would you first like to save your current challenge?',
+                    QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
+                if choice == QMessageBox.Yes:
+                    self.save_challenge()
+                elif choice == QMessageBox.Cancel:
+                    return
+            self.challengeEntries.clear()
+            self.entryNumbers = data.output['numbers']
+            self.challengeName.setText(data.output['name'])
+            for k, entry in enumerate(data.output['entries']):
+                name = data.output['name'] + ' ' +
+                item = QListWidgetItem()
+            self.rightSide['container'].setEnabled(False)
 
     def challenge_name_update(self):
         # Updates all entry names to the new challenge name.

@@ -7,19 +7,24 @@ Created on Thu Jun 27 13:20:22 2019
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QDialog, QGridLayout, QTextEdit
-from PyQt5.QtWidgets import QPushButton, QMessageBox
-
+from PyQt5.QtWidgets import QPushButton, QMessageBox, QSizePolicy
 from challenge_data import challengeEntry
+
 
 class challengeDialog(QDialog):
     def __init__(self, parent=None, importer=False, title='Popup'):
         super().__init__(parent=parent)
 
+        self.setWindowTitle(title)
+        self.setFixedSize(630, 400)
+        self.setWindowModality(True)
+
         layout = QGridLayout()
 
         self.post = QTextEdit()
         self.post.setAcceptRichText(False)
-        layout.addWidget(self.post, 0, 0, 1, 2, Qt.AlignCenter)
+        layout.addWidget(self.post, 0, 0, 1, 2)
+        layout.setRowStretch(0, 255)
 
         if importer:
             importer = QPushButton('Import')
@@ -31,9 +36,6 @@ class challengeDialog(QDialog):
             layout.addWidget(cancel, 1, 1, Qt.AlignCenter)
 
         self.setLayout(layout)
-        self.setWindowTitle(title)
-        self.setFixedSize(900, 650)
-        self.setWindowModality(True)
 
     @classmethod
     def importer(cls, parent=None):
@@ -45,12 +47,14 @@ class challengeDialog(QDialog):
         while True:
             try:
                 line = text.pop(0)
-                if line[0] == '#':
+                if line[:1] == '#':
                     name = line.split('__')[1]
-                    name.rstrip(' Challenge')
-                elif line[0:7] == '__Genre':
+                    name = name.rstrip(' Challenge')
+                    break
+                elif line[:7] == '__Genre':
                     name = line.split('__')[1]
-                    name.lstrip('Genre Challenge: ')
+                    name = name.lstrip('Genre Challenge: ')
+                    break
             except IndexError:
                 break
         if not name:
@@ -65,17 +69,17 @@ class challengeDialog(QDialog):
                 return
         self.output = {}
         self.output['name'] = name
+        self.output['entryNumbers'] = []
         self.output['entries'] = []
-        self.output['numbers'] = []
         while text:
             line = text.pop(0)
             index = line.split('.')[0]
             number = ''
-            if index[0:5] == 'Bonus':
+            if index[:5] == 'Bonus':
                 try:
                     number = 'b' + index.split()[1]
                 except IndexError:
-                    number = 'b'
+                    number = 'b1'
             else:
                 try:
                     int(index)

@@ -27,6 +27,7 @@ class challengeDialog(QDialog):
         layout.setRowStretch(0, 255)
 
         if importer:
+            self.post.setPlaceholderText('Paste the challenge code here.')
             importer = QPushButton('Import')
             importer.clicked.connect(self.import_event)
             layout.addWidget(importer, 1, 0, Qt.AlignCenter)
@@ -70,26 +71,27 @@ class challengeDialog(QDialog):
         self.output = {}
         self.output['name'] = name
         self.output['entryNumbers'] = []
-        self.output['entries'] = []
+        self.output['entries'] = {}
         while text:
             line = text.pop(0)
             index = line.split('.')[0]
             number = ''
             if index[:5] == 'Bonus':
                 try:
-                    number = 'b' + index.split()[1]
+                    number = 'B' + index.split()[1]
                 except IndexError:
-                    number = 'b1'
+                    number = 'B1'
             else:
                 try:
                     int(index)
                     number = index.zfill(2)
                 except ValueError:
                     continue
-            self.output['numbers'].append(number)
-            entry = challengeEntry(number)
-            entry.requirement = line.split('__')[1]
-            self.output['entries'].append(entry)
+            self.output['entryNumbers'].append(number)
+            entryName = name + ' ' + number
+            entryData = {'requirement': line.split('__')[1],
+                         'number': number.lstrip('0')}
+            self.output['entries'].update({entryName: entryData})
         self.accept()
 
 

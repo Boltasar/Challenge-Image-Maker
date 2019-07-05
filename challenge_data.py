@@ -115,7 +115,7 @@ class challengeEntry:
         # Builds the image layers based on savedata
         for key in savedata:
             setattr(self, key, savedata[key])
-        self.image.write_entry_number(str(self.number))
+        self.image.write_entry_number(self.number)
         tier = app.tierChoice['widget'].itemText(self.tierIndex)
         tierColor = app.tierChoice['widget'].itemData(self.tierIndex)
         self.image.write_entry_tier(tier, tierColor)

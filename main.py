@@ -8,9 +8,10 @@ Small program that helps generate the images used in several AWC submission post
 """
 
 import json
+import re
 # Import PyQt for the GUI
 from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QIcon, QIntValidator, QPixmap
+from PyQt5.QtGui import QIcon, QIntValidator, QValidator, QPixmap
 from PyQt5.QtWidgets import QAbstractItemView, QAction, QComboBox, QFileDialog
 from PyQt5.QtWidgets import QLabel, QLineEdit, QListWidget, QListWidgetItem
 from PyQt5.QtWidgets import QMainWindow, QPushButton, QWidget, QMessageBox
@@ -26,7 +27,7 @@ from config import PATH, PREVIOUS_SESSION, STATUS_DICTIONARY, RESOURCES_IMAGE_PA
 
 
 class window(QMainWindow):
-    # The class that contains all the gui code
+    # The class that contains the primary window
 
     # Class constants
     IMAGELAYERS = (
@@ -161,7 +162,7 @@ class window(QMainWindow):
         # Build challenge number entry line
         self.entryNumber = {}
         self.entryNumber['widget'] = QLineEdit()
-        self.entryNumber['widget'].setValidator(QIntValidator(1, 99))
+        self.entryNumber['widget'].setValidator(numberValidator(self))
         self.entryNumber['widget'].setPlaceholderText('#')
         self.entryNumber['widget'].setMaximumWidth(25)
         self.entryNumber['label'] = QLabel('Number:')
@@ -390,21 +391,25 @@ class window(QMainWindow):
     def load_challenge_data(self, savedata):
         self.statusBar().showMessage('Loading Anime Challenge Data')
         self.challengeName.setText(savedata['name'])
-        self.username.setText(savedata['username'])
-        self.entryNumbers = savedata['entryNumbers']
-        self.exportPath = savedata['exportPath']
-        self.challengeEntries.clear()
-        k = 0
-        for name, entryRequirement in savedata['entries'].items():
-            item = QListWidgetItem(name)
-            data = challengeEntry()
-            data.load_savedata(entryRequirement, self)
-            item.setData(Qt.UserRole, data)
-            self.challengeEntries.addItem(item)
-            self.challengeEntries.setCurrentRow(k)
-            self.challengeEntries.setFocus(True)
-            k += 1
-        self.statusBar().clearMessage()
+        if 'username' in savedata.keys():
+            self.username.setText(savedata['username'])
+        if 'entryNumbers' in savedata.keys():
+            self.entryNumbers = savedata['entryNumbers']
+        if 'exportPath' in savedata.keys():
+            self.exportPath = savedata['exportPath']
+        if 'entries' in savedata.keys():
+            self.challengeEntries.clear()
+            k = 0
+            for name, entryData in savedata['entries'].items():
+                item = QListWidgetItem(name)
+                data = challengeEntry()
+                data.load_savedata(entryData, self)
+                item.setData(Qt.UserRole, data)
+                self.challengeEntries.addItem(item)
+                self.challengeEntries.setCurrentRow(k)
+                self.challengeEntries.setFocus(True)
+                k += 1
+        self.statusBar().showMessage(str(self.entryNumbers), 500)
 
     def save_challenge(self, fileName=None):
         # Saves the challenge data to a json file.
@@ -436,7 +441,7 @@ class window(QMainWindow):
 
     def import_from_challenge_code(self):
         data = challengeDialog.importer(self)
-        if importData.exec_():
+        if data.exec_():
             if self.challengeEntries.count():
                 choice = QMessageBox.question(
                     self, 'Make new challenge',
@@ -446,13 +451,7 @@ class window(QMainWindow):
                     self.save_challenge()
                 elif choice == QMessageBox.Cancel:
                     return
-            self.challengeEntries.clear()
-            self.entryNumbers = data.output['numbers']
-            self.challengeName.setText(data.output['name'])
-            for k, entry in enumerate(data.output['entries']):
-                name = data.output['name'] + ' ' +
-                item = QListWidgetItem()
-            self.rightSide['container'].setEnabled(False)
+            self.load_challenge_data(data.output)
 
     def challenge_name_update(self):
         # Updates all entry names to the new challenge name.
@@ -484,6 +483,7 @@ class window(QMainWindow):
         data.get_info_from_id(self.username.text())
         for item in ['image', 'title', 'dates', 'duration']:
             self.change_image(data, item)
+        print('updated')
 
     def change_image(self, data, key):
         # Updates the requested image layer.
@@ -535,8 +535,8 @@ class window(QMainWindow):
         text = ' '.join(text)
         currentItem.setText(text)
         data = currentItem.data(Qt.UserRole)
-        data.number = int(number)
-        data.image.write_entry_number(number.lstrip('0'), 15)
+        data.number = number.lstrip('0')
+        data.image.write_entry_number(number.lstrip('0'))
         self.change_image(data, 'number')
 
     def tier_update(self, index):
@@ -637,6 +637,28 @@ class buttonGroup():
             self.add_button(key, typelist[0], typelist[1], typelist[2])
 
 
+class numberValidator(QValidator):
+
+    def __init__(self, parent):
+        super().__init__(parent=parent)
+        self.parent = parent
+
+    def validate(self, s, pos):
+        length = len(s)
+        if length < 1:
+            return QValidator.Intermediate, s, pos
+        elif length > 2:
+            return QValidator.Invalid, s, pos
+        filtered = re.match(r'B{0,1}\d{0,2}', s.upper())
+        if not filtered:
+            return QValidator.Invalid, s, pos
+        filtered = filtered.group()
+        if filtered == 'B' or filtered.zfill(2) in self.parent.entryNumbers:
+            return QValidator.Intermediate, s, pos
+        else:
+            return QValidator.Acceptable, filtered, pos
+
+
 # Global functions
 ##############################################################################
 def center_screen(window):
@@ -666,8 +688,10 @@ def build_layout(target, containerKey, layoutKey, spacings=0, margins=0):
         target[layoutKey].setContentsMargins(margins, margins, margins, margins)
 
 
-def run():
+if __name__ == '__main__':
+
+    import sys
     app = QApplication([])
     app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
-    Gui = window()
+    gui = window()
     app.exec_()

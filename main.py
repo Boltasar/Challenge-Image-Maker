@@ -11,12 +11,12 @@ import json
 import re
 # Import PyQt for the GUI
 from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QIcon, QIntValidator, QValidator, QPixmap
+from PyQt5.QtGui import QIcon, QIntValidator, QValidator, QPixmap, QKeySequence
 from PyQt5.QtWidgets import QAbstractItemView, QAction, QComboBox, QFileDialog
 from PyQt5.QtWidgets import QLabel, QLineEdit, QListWidget, QListWidgetItem
 from PyQt5.QtWidgets import QMainWindow, QPushButton, QWidget, QMessageBox
-from PyQt5.QtWidgets import QRadioButton, QApplication, QCheckBox
-from PyQt5.QtWidgets import QTextEdit
+from PyQt5.QtWidgets import QRadioButton, QApplication, QCheckBox, QTextEdit
+from PyQt5.QtWidgets import QShortcut
 from PyQt5.QtWidgets import QGridLayout, QHBoxLayout, QVBoxLayout, QGroupBox
 import qdarkstyle
 # Import PIL for the image editing
@@ -109,6 +109,10 @@ class window(QMainWindow):
         self.challengeEntries.setSortingEnabled(True)
         self.challengeEntries.setMaximumWidth(250)
         self.challengeEntries.setSelectionMode(QAbstractItemView.SingleSelection)
+        next_item = QShortcut(QKeySequence.NextChild, self)
+        next_item.activated.connect(lambda: self.challengeEntries_change_row(1))
+        prev_item = QShortcut(QKeySequence.PreviousChild, self)
+        prev_item.activated.connect(lambda: self.challengeEntries_change_row(-1))
 
         self.username = QLineEdit()
         self.username.setPlaceholderText("Input your username here")
@@ -409,7 +413,6 @@ class window(QMainWindow):
                 self.challengeEntries.setCurrentRow(k)
                 self.challengeEntries.setFocus(True)
                 k += 1
-        self.statusBar().showMessage(str(self.entryNumbers), 500)
 
     def save_challenge(self, fileName=None):
         # Saves the challenge data to a json file.
@@ -483,7 +486,6 @@ class window(QMainWindow):
         data.get_info_from_id(self.username.text())
         for item in ['image', 'title', 'dates', 'duration']:
             self.change_image(data, item)
-        print('updated')
 
     def change_image(self, data, key):
         # Updates the requested image layer.
@@ -557,7 +559,10 @@ class window(QMainWindow):
 
     def entry_requirement_image_update(self):
         # Updates the requirement image
-        data = self.challengeEntries.currentItem().data(Qt.UserRole)
+        item = self.challengeEntries.currentItem()
+        if not item:
+            return
+        data = item.data(Qt.UserRole)
         data.image.write_entry_requirement(data.requirement, 15)
         self.change_image(data, 'requirement')
 
@@ -570,16 +575,29 @@ class window(QMainWindow):
                                        data.episodeDuration, 15)
         self.change_image(data, 'duration')
 
+    def challengeEntries_change_row(self, change):
+        count = self.challengeEntries.count()
+        if count:
+            row = self.challengeEntries.currentRow()
+            row = (row + change)%count
+            self.challengeEntries.setCurrentRow(row)
+
     def challengeEntries_key_events(self, event):
         # Catches the delete key for challenge entry removal
         if event.key() == Qt.Key_Delete:
-            if self.challengeEntries.count():
+            count = self.challengeEntries.count()
+            if count:
                 self.rightSide['container'].setEnabled(False)
                 row = self.challengeEntries.currentRow()
                 self.challengeEntries.takeItem(row)
                 self.entryNumbers.pop(row)
-                row = max([0, row - 1])
-                self.challengeEntries.setCurrentRow(row)
+                if count-1:
+                    row = (row-1)%(count-1)
+                    self.challengeEntries.setCurrentRow(row)
+        elif event.key() == Qt.Key_Down:
+            self.challengeEntries_change_row(1)
+        elif event.key() == Qt.Key_Up:
+            self.challengeEntries_change_row(-1)
 
     # Exit Application
     def closeEvent(self, event):
@@ -653,7 +671,8 @@ class numberValidator(QValidator):
         if not filtered:
             return QValidator.Invalid, s, pos
         filtered = filtered.group()
-        if filtered == 'B' or filtered.zfill(2) in self.parent.entryNumbers:
+        if (filtered == 'B' or filtered.zfill(2) == '00'
+            or filtered.zfill(2) in self.parent.entryNumbers):
             return QValidator.Intermediate, s, pos
         else:
             return QValidator.Acceptable, filtered, pos
@@ -688,10 +707,12 @@ def build_layout(target, containerKey, layoutKey, spacings=0, margins=0):
         target[layoutKey].setContentsMargins(margins, margins, margins, margins)
 
 
-if __name__ == '__main__':
-
+#if __name__ == '__main__':
+def run():
     import sys
     app = QApplication([])
     app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
     gui = window()
     app.exec_()
+
+run()

@@ -70,6 +70,7 @@ class challengeEntry:
         self.minimumTime = 0
         self.episodeCount = 0
         self.episodeDuration = 0
+        self.progress = 0
 
     def get_id_from_link(self, link):
         # Split the link into parts seperated by /
@@ -108,6 +109,7 @@ class challengeEntry:
             if userdata:
                 self.startDate = userdata['startedAt']
                 self.completeDate = userdata['completedAt']
+                self.progress = userdata['progress']
         self.image.write_dates_text(self.startDate, self.completeDate, 15)
         return True
 

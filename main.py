@@ -63,6 +63,8 @@ class window(QMainWindow):
         # Create the main statusbar
         self.statusBar()
         self.statusBar().setSizeGripEnabled(False)
+        self.totalDuration = QLabel('0 Minutes')
+        self.statusBar().addPermanentWidget(self.totalDuration)
 
         # Create the main menubar
         mainMenu = self.menuBar()
@@ -111,7 +113,7 @@ class window(QMainWindow):
         self.challengeEntries.setSelectionMode(QAbstractItemView.SingleSelection)
         next_item = QShortcut(QKeySequence.NextChild, self)
         next_item.activated.connect(lambda: self.challengeEntries_change_row(1))
-        prev_item = QShortcut(QKeySequence.PreviousChild, self)
+        prev_item = QShortcut(QKeySequence("Ctrl+Shift+Tab"), self)
         prev_item.activated.connect(lambda: self.challengeEntries_change_row(-1))
 
         self.username = QLineEdit()
@@ -414,6 +416,7 @@ class window(QMainWindow):
                 self.challengeEntries.setCurrentRow(k)
                 self.challengeEntries.setFocus(True)
                 k += 1
+        self.update_total_duration()
 
     def save_challenge(self, fileName=None):
         # Saves the challenge data to a json file.
@@ -487,6 +490,8 @@ class window(QMainWindow):
         data.get_info_from_id(self.username.text())
         for item in ['image', 'title', 'dates', 'duration']:
             self.change_image(data, item)
+        self.update_total_duration()
+
 
     def change_image(self, data, key):
         # Updates the requested image layer.
@@ -494,6 +499,21 @@ class window(QMainWindow):
         self.imageViewer[key].Qt = ImageQt(self.imageViewer[key].image)
         self.imageViewer[key].pixmap = QPixmap.fromImage(self.imageViewer[key].Qt)
         self.imageViewer[key].setPixmap(self.imageViewer[key].pixmap)
+
+    def update_total_duration(self):
+        # Calculates the total duration of minutes spent on the challenge
+        total = 0
+        watched = 0
+        for x in range(self.challengeEntries.count()):
+            data = self.challengeEntries.item(x).data(Qt.UserRole)
+            episodes = data.episodeCount
+            epLength = data.episodeDuration
+            duration = episodes * epLength
+            watching = max(data.progress * epLength,
+                           duration * data.status['Complete'])
+            total += duration
+            watched += watching
+        self.totalDuration.setText('{}/{} Minutes'.format(watched, total))
 
     def change_status(self, name, state, button):
         # Builds the icon and border glow according to selected check/radiobox

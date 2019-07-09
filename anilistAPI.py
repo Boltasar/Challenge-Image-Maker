@@ -58,6 +58,8 @@ query userData($animeID: Int, $username: String) {
       month
       day
     }
+    status
+    progress
   }
 }
 

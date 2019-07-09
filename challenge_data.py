@@ -44,7 +44,7 @@ class challengeEntry:
         'episodeCount', 'episodeDuration'
     ]
 
-    def __init__(self, number=0):
+    def __init__(self, number='0'):
         """
         The construct for challengeEntry class.
 

@@ -89,8 +89,12 @@ class challengeDialog(QDialog):
                     continue
             self.output['entryNumbers'].append(number)
             entryName = name + ' ' + number
-            entryData = {'requirement': line.split('__')[1],
-                         'number': number.lstrip('0')}
+            try:
+                entryData = {'requirement': line.split('__')[1],
+                             'number': number.lstrip('0')}
+            except IndexError:
+                entryData = {'requirement': '',
+                             'number': number.lstrip('0')}
             self.output['entries'].update({entryName: entryData})
         self.accept()
 

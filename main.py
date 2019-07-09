@@ -318,11 +318,12 @@ class window(QMainWindow):
             number = next(a for a, b in enumerate(self.entryNumbers, 1) if str(a).zfill(2) < b)
         except StopIteration:
             number = len(self.entryNumbers) + 1
-        self.entryNumbers.insert(number-1, str(number).zfill(2))
-        name = self.challengeName.text() + ' ' + str(number).zfill(2)
+        number = str(number)
+        self.entryNumbers.insert(number-1, number.zfill(2))
+        name = self.challengeName.text() + ' ' + number.zfill(2)
         item = QListWidgetItem(name)
         data = challengeEntry(number=number)
-        data.image.write_entry_number(str(number))
+        data.image.write_entry_number(number)
         item.setData(Qt.UserRole, data)
         self.challengeEntries.addItem(item)
         self.challengeEntries.setCurrentRow(number-1)
@@ -343,7 +344,7 @@ class window(QMainWindow):
                 self.status.buttons[key].setChecked(False)
                 self.status.buttons[key].setAutoExclusive(True)
             self.status.buttons[key].setChecked(item)
-        self.entryNumber['widget'].setText(str(data.number))
+        self.entryNumber['widget'].setText(data.number)
         self.tierChoice['widget'].setCurrentIndex(data.tierIndex)
         self.entryRequirement['widget'].setPlainText(data.requirement)
         self.minimumTime['widget'].setText(str(data.minimumTime))
@@ -462,7 +463,7 @@ class window(QMainWindow):
         self.challengeEntries.setSortingEnabled(False)
         for k in range(0, self.challengeEntries.count()):
             number = self.entryNumbers[k]
-            text = name + ' ' + str(number).zfill(2)
+            text = name + ' ' + number.zfill(2)
             self.challengeEntries.item(k).setText(text)
         self.challengeEntries.setSortingEnabled(True)
 

@@ -12,7 +12,7 @@ from challenge_data import challengeEntry
 
 
 class challengeDialog(QDialog):
-    def __init__(self, parent=None, importer=False, title='Popup'):
+    def __init__(self, parent=None, mode='', title='Popup'):
         super().__init__(parent=parent)
 
         self.setWindowTitle(title)
@@ -26,7 +26,7 @@ class challengeDialog(QDialog):
         layout.addWidget(self.post, 0, 0, 1, 2)
         layout.setRowStretch(0, 255)
 
-        if importer:
+        if mode == 'Importer':
             self.post.setPlaceholderText('Paste the challenge code here.')
             importer = QPushButton('Import')
             importer.clicked.connect(self.import_event)
@@ -35,12 +35,18 @@ class challengeDialog(QDialog):
             cancel = QPushButton('Cancel')
             cancel.clicked.connect(self.reject)
             layout.addWidget(cancel, 1, 1, Qt.AlignCenter)
+        elif mode == 'Exporter':
+
 
         self.setLayout(layout)
 
     @classmethod
     def importer(cls, parent=None):
-        return cls(parent=parent, importer=True, title='Import Challenge Code')
+        return cls(parent=parent, mode='Import', title='Import Challenge Code')
+
+    @classmethod
+    def exporter(cls, parent=None):
+        return cls(parent=parent, mode='Export', title='Export Forum Post')
 
     def import_event(self):
         text = self.post.toPlainText().split('\n')

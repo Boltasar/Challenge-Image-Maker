@@ -9,6 +9,7 @@ Small program that helps generate the images used in several AWC submission post
 
 import json
 import re
+import os
 # Import PyQt for the GUI
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QIcon, QIntValidator, QValidator, QPixmap, QKeySequence
@@ -38,7 +39,7 @@ class window(QMainWindow):
         # Initiates a few instance variables before building the rest
         super().__init__()
         self.challengePath = PATH
-        self.fileName = None
+        self.filename = None
         self.exportPath = PATH
         self.entryNumbers = []
 
@@ -89,11 +90,13 @@ class window(QMainWindow):
         add_action(fileMenu, '&Quit', 'Ctrl+Q',
                    'Close the application', self.close)
 
-        porterMenu = mainMenu.addMenu('Im/Ex&port')
+        codeMenu = mainMenu.addMenu('code')
 
-        add_action(porterMenu, '&Import challenge', 'Ctrl+I',
+        add_action(codeMenu, '&Import challenge code', 'Ctrl+I',
                    'Import challenge from challenge code',
                    self.import_from_challenge_code)
+        add_action(codeMenu, '&Export forum chode', 'Ctrl+E',
+                   self.export_forum_code)
         # End of main body functions
 ##############################################################################
 
@@ -213,7 +216,7 @@ class window(QMainWindow):
         self.buttons['update'] = QPushButton('Update AniData')
         # The button to export the image
         self.buttons['export'] = QPushButton('Export PNG')
-        # The button to force a save as dialog
+        # The button to export all challenge entries
         self.buttons['exportall'] = QPushButton('Export PNG All')
 
         # Placeholder image to give a feel for the eventual frame
@@ -293,26 +296,42 @@ class window(QMainWindow):
     def export_image(self):
         # Asks for a save location and name and saves the current entry image.
         data = self.challengeEntries.currentItem().data(Qt.UserRole)
-        fileName = QFileDialog().getSaveFileName(
+        filename = QFileDialog().getSaveFileName(
             self, 'Save image', self.exportPath, 'PNG(*.png)')[0]
-        if not fileName:
+        if not filename:
             return
-        self.exportPath = fileName.rstrip(fileName.split('\\')[-1])
+        self.exportPath = filename.rstrip(filename.split('\\')[-1])
         image = data.image.build_full_image()
-        image.save(fileName, 'png')
+        image.save(filename, 'png')
 
     def export_all_images(self):
         # Asks for a save directory and exports all entries images.
-        fileName = QFileDialog().getExistingDirectory(
+        filename = QFileDialog().getExistingDirectory(
             self, 'Save all images', self.exportPath)
-        if not fileName:
+        if not filename:
             return
-        self.exportPath = fileName
+        self.exportPath = filename
+        overwriteAll = False
         for k in range(0, self.challengeEntries.count()):
-            data = self.challengeEntries.item(k).data(Qt.UserRole)
             name = self.challengeEntries.item(k).text()
+            savename = name + '.png'
+            if not overwriteAll and savename in os.listdir(filename):
+                choice = QMessageBox.question(
+                    self, 'Overwrite file', '{} already'.format(savename) +
+                    ' exists. Do you want to overwrite it?',
+                    QMessageBox.YesToAll | QMessageBox.Yes |
+                    QMessageBox.No | QMessageBox.Cancel)
+                if choice == QMessageBox.YesToAll:
+                    overwriteAll = True
+                elif choice == QMessageBox.Yes:
+                    pass
+                elif choice == QMessageBox.No:
+                    continue
+                else:
+                    break
+            data = self.challengeEntries.item(k).data(Qt.UserRole)
             image = data.image.build_full_image()
-            image.save(fileName + '\\' + name + '.png', 'png')
+            image.save(filename + '\\' + savename, 'png')
 
     def new_challenge_entry(self):
         # Builds a new entry and gives it the first missing positive integer.
@@ -369,26 +388,26 @@ class window(QMainWindow):
         self.challengeName.setText('')
         self.rightSide['container'].setEnabled(False)
 
-    def load_challenge_prompt(self, fileName=None):
+    def load_challenge_prompt(self, filename=None):
         """
         Loads the challenge data from a json file.
 
-        :fileName: pathname to the challenge that was previously open.
+        :filename: pathname to the challenge that was previously open.
         :returns: None
         """
-        if not fileName:
-            fileName = QFileDialog().getOpenFileName(
+        if not filename:
+            filename = QFileDialog().getOpenFileName(
                 self, 'Load challenge list',
                 self.challengePath, 'Anime Challenge List Object(*.aclo)')[0]
-        if not fileName:
+        if not filename:
             return
-        self.challengePath = fileName.rstrip(fileName.split('\\')[-1])
+        self.challengePath = filename.rstrip(filename.split('\\')[-1])
         # Open the file or show error in case of failure
         try:
-            with open(fileName, 'rb') as f:
+            with open(filename, 'rb') as f:
                 savedata = json.load(f)
         except FileNotFoundError:
-            if fileName == PREVIOUS_SESSION:
+            if filename == PREVIOUS_SESSION:
                 return
             else:
                 QMessageBox.warning(self, 'Warning', "Couldn't find file!")
@@ -418,15 +437,15 @@ class window(QMainWindow):
                 k += 1
         self.update_total_duration()
 
-    def save_challenge(self, fileName=None):
+    def save_challenge(self, filename=None):
         # Saves the challenge data to a json file.
-        if not fileName:
-            fileName = QFileDialog().getSaveFileName(
+        if not filename:
+            filename = QFileDialog().getSaveFileName(
                 self, 'Save challenge', self.challengePath,
                 'Anime Challenge List Object(*.aclo)')[0]
-        if not fileName:
+        if not filename:
             return False
-        self.challengePath = fileName.rstrip(fileName.split('\\')[-1])
+        self.challengePath = filename.rstrip(filename.split('\\')[-1])
         entries = {}
         for k in range(0, self.challengeEntries.count()):
             name = self.challengeEntries.item(k).text()
@@ -442,7 +461,7 @@ class window(QMainWindow):
                 'exportPath': self.exportPath,
                 'entries': entries
                 }
-        with open(fileName, 'w') as f:
+        with open(filename, 'w') as f:
             json.dump(savedata, f, indent=4)
         return True
 
@@ -451,7 +470,7 @@ class window(QMainWindow):
         if data.exec_():
             if self.challengeEntries.count():
                 choice = QMessageBox.question(
-                    self, 'Make new challenge',
+                    self, 'Load challenge',
                     'Would you first like to save your current challenge?',
                     QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
                 if choice == QMessageBox.Yes:
@@ -459,6 +478,9 @@ class window(QMainWindow):
                 elif choice == QMessageBox.Cancel:
                     return
             self.load_challenge_data(data.output)
+
+    def export_forum_code(self):
+        challengeDialog.exporter(self)
 
     def challenge_name_update(self):
         # Updates all entry names to the new challenge name.
@@ -600,7 +622,7 @@ class window(QMainWindow):
         count = self.challengeEntries.count()
         if count:
             row = self.challengeEntries.currentRow()
-            row = (row + change)%count
+            row = (row + change) % count
             self.challengeEntries.setCurrentRow(row)
 
     def challengeEntries_key_events(self, event):
@@ -613,7 +635,7 @@ class window(QMainWindow):
                 self.challengeEntries.takeItem(row)
                 self.entryNumbers.pop(row)
                 if count-1:
-                    row = (row-1)%(count-1)
+                    row = (row-1) % (count-1)
                     self.challengeEntries.setCurrentRow(row)
         elif event.key() == Qt.Key_Down:
             self.challengeEntries_change_row(1)
@@ -670,7 +692,9 @@ class buttonGroup():
         self.box['grid'].addWidget(
             self.labels[name], 1, column, Qt.AlignCenter)
 
-    def add_button_batch(self, buttonsDictionary={}):
+    def add_button_batch(self, buttonsDictionary=None):
+        if not buttonsDictionary:
+            return
         # Calls add button for every entry in the input dictionary
         for key, typelist in buttonsDictionary.items():
             self.add_button(key, typelist[0], typelist[1], typelist[2])

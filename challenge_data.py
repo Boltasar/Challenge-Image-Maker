@@ -104,6 +104,7 @@ class challengeEntry:
                                        self.episodeDuration, 15)
         self.startDate = {'year': None, 'month': None, 'day': None}
         self.completeDate = {'year': None, 'month': None, 'day': None}
+        self.progress = 0
         if username:
             userdata = anilistAPI.get_user_data(self.animeID, username)
             if userdata:

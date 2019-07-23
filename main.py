@@ -90,13 +90,14 @@ class window(QMainWindow):
         add_action(fileMenu, '&Quit', 'Ctrl+Q',
                    'Close the application', self.close)
 
-        codeMenu = mainMenu.addMenu('code')
+        codeMenu = mainMenu.addMenu('&Code')
 
         add_action(codeMenu, '&Import challenge code', 'Ctrl+I',
                    'Import challenge from challenge code',
                    self.import_from_challenge_code)
         add_action(codeMenu, '&Export forum chode', 'Ctrl+E',
-                   self.export_forum_code)
+                   'Gives a prebuild forum post. Image links still need to '
+                   + 'be manually included', self.export_to_forum_code)
         # End of main body functions
 ##############################################################################
 
@@ -436,6 +437,7 @@ class window(QMainWindow):
                 self.challengeEntries.setFocus(True)
                 k += 1
         self.update_total_duration()
+        self.statusBar().clearMessage()
 
     def save_challenge(self, filename=None):
         # Saves the challenge data to a json file.
@@ -466,6 +468,7 @@ class window(QMainWindow):
         return True
 
     def import_from_challenge_code(self):
+        # Imports the challenge information from provided chalenge code posts.
         data = challengeDialog.importer(self)
         if data.exec_():
             if self.challengeEntries.count():
@@ -479,8 +482,37 @@ class window(QMainWindow):
                     return
             self.load_challenge_data(data.output)
 
-    def export_forum_code(self):
-        challengeDialog.exporter(self)
+    def export_to_forum_code(self):
+        savedata = {
+                'name': self.challengeName.text(),
+                'entries': [],
+                'easyEntries': [],
+                'normalEntries': [],
+                'hardEntries': [],
+                'completed': 0
+                }
+        bonus = 0
+        for k in range(self.challengeEntries.count()):
+            data = self.challengeEntries.item(k).data(Qt.UserRole)
+            entry = {
+                    'number': data.number,
+                    'link': data.link,
+                    }
+            if data.status['Complete'] == True:
+                savedata['completed'] += 1
+            if data.tierIndex == 0:
+                savedata['entries'].append(entry)
+            elif data.tierIndex == 1:
+                savedata['easyEntries'].append(entry)
+            elif data.tierIndex == 2:
+                savedata['normalEntries'].append(entry)
+            elif data.tierIndex == 3:
+                savedata['hardEntries'].append(entry)
+            if data.number[0] == 'B':
+                bonus += 1
+        savedata['total'] = k + 1 - bonus
+        challengeDialog.exporter(self, savedata).exec_()
+
 
     def challenge_name_update(self):
         # Updates all entry names to the new challenge name.
@@ -513,7 +545,6 @@ class window(QMainWindow):
         for item in ['image', 'title', 'dates', 'duration']:
             self.change_image(data, item)
         self.update_total_duration()
-
 
     def change_image(self, data, key):
         # Updates the requested image layer.
@@ -752,12 +783,13 @@ def build_layout(target, containerKey, layoutKey, spacings=0, margins=0):
         target[layoutKey].setContentsMargins(margins, margins, margins, margins)
 
 
-#if __name__ == '__main__':
+# if __name__ == '__main__':
 def run():
     import sys
-    app = QApplication([])
+    app = QApplication(sys.argv)
     app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
-    gui = window()
+    window()
     app.exec_()
+
 
 run()

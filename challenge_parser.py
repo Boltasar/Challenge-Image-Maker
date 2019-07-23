@@ -7,12 +7,11 @@ Created on Thu Jun 27 13:20:22 2019
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QDialog, QGridLayout, QTextEdit
-from PyQt5.QtWidgets import QPushButton, QMessageBox, QSizePolicy
-from challenge_data import challengeEntry
+from PyQt5.QtWidgets import QPushButton, QMessageBox
 
 
 class challengeDialog(QDialog):
-    def __init__(self, parent=None, mode='', title='Popup'):
+    def __init__(self, parent=None, mode='', title='Popup', data=None):
         super().__init__(parent=parent)
 
         self.setWindowTitle(title)
@@ -36,7 +35,7 @@ class challengeDialog(QDialog):
             cancel.clicked.connect(self.reject)
             layout.addWidget(cancel, 1, 1, Qt.AlignCenter)
         elif mode == 'Exporter':
-
+            self.post.setPlainText(self.build_post_from_data(data))
 
         self.setLayout(layout)
 
@@ -45,8 +44,11 @@ class challengeDialog(QDialog):
         return cls(parent=parent, mode='Import', title='Import Challenge Code')
 
     @classmethod
-    def exporter(cls, parent=None):
-        return cls(parent=parent, mode='Export', title='Export Forum Post')
+    def exporter(cls, parent=None, data=None):
+        if data is None:
+            data = {}
+        return cls(parent=parent, mode='Exporter',
+                   title='Export Forum Post', data=data)
 
     def import_event(self):
         text = self.post.toPlainText().split('\n')
@@ -104,6 +106,23 @@ class challengeDialog(QDialog):
             self.output['entries'].update({entryName: entryData})
         self.accept()
 
+    def build_post_from_data(self, data):
+        text = r"""#<center>__{0} Challenge__
+<center>
+Challenge Start Date: {1}
+Challenge Finish Date: {2}
 
-def challenge_code_decompiler():
-    pass
+Progress {3}/{4}
+
+✔️ = Completed | ▶️ = Currenty Watching | ❌ = Not Started | ❔ = Undecided
+""".format(data['name'], '1/7','31/7', data['completed'], data['total'])
+        if data['easyEntries'] or data['normalEntries'] or data['hardEntries']:
+                pass
+        else:
+            text += '<hr>\n'
+            for entry in data['entries']:
+                text += (r"[<img src = '[insert link to {0} {1} here]'"
+                + r" width = 20%]({2})").format(data['name'], entry['number'],
+                                              entry['link'])
+            text += '\n<hr>\nSpecial Notes:\n'
+        return text

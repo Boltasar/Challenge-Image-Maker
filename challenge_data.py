@@ -39,7 +39,7 @@ class challengeEntry:
 
     # Class variables
     savedAttributesList = [
-        'name', 'animeID', 'status', 'number', 'tierIndex', 'title',
+        'link', 'animeID', 'status', 'number', 'tierIndex', 'title',
         'imageLink', 'requirement', 'startDate', 'completeDate',
         'episodeCount', 'episodeDuration'
     ]
@@ -57,6 +57,7 @@ class challengeEntry:
         """
         self.image = animeImage((31, 35, 35, 255), (95, 104, 117, 255))
         self.animeID = None
+        self.link = 'https://anilist.co/anime'
         self.status = {}
         for key, item in STATUS_DICTIONARY.items():
             self.status[key] = item[1]

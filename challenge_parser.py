@@ -41,7 +41,7 @@ class challengeDialog(QDialog):
 
     @classmethod
     def importer(cls, parent=None):
-        return cls(parent=parent, mode='Import', title='Import Challenge Code')
+        return cls(parent=parent, mode='Importer', title='Import Challenge Code')
 
     @classmethod
     def exporter(cls, parent=None, data=None):
@@ -58,11 +58,11 @@ class challengeDialog(QDialog):
                 line = text.pop(0)
                 if line[:1] == '#':
                     name = line.split('__')[1]
-                    name = name.rstrip(' Challenge')
+                    name = name[:-10]
                     break
                 elif line[:7] == '__Genre':
                     name = line.split('__')[1]
-                    name = name.lstrip('Genre Challenge: ')
+                    name = name[17:]
                     break
             except IndexError:
                 break
@@ -122,7 +122,7 @@ Progress {3}/{4}
             text += '<hr>\n'
             for entry in data['entries']:
                 text += (r"[<img src = '[insert link to {0} {1} here]'"
-                + r" width = 20%]({2})").format(data['name'], entry['number'],
+                + r" width = 20%>]({2})").format(data['name'], entry['number'],
                                               entry['link'])
             text += '\n<hr>\nSpecial Notes:\n'
         return text

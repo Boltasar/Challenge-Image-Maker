@@ -57,7 +57,7 @@ class challengeEntry:
         """
         self.image = animeImage((31, 35, 35, 255), (95, 104, 117, 255))
         self.animeID = None
-        self.link = 'https://anilist.co/anime'
+        self.link = 'https://anilist.co/anime/'
         self.status = {}
         for key, item in STATUS_DICTIONARY.items():
             self.status[key] = item[1]
@@ -94,7 +94,7 @@ class challengeEntry:
         anime = anilistAPI.get_anime_data(self.animeID)
         if not anime:
             return False
-        self.link = 'https://anilist.co/anime' + str(self.animeID) + '/'
+        self.link = 'https://anilist.co/anime/' + str(self.animeID) + '/'
         self.title = anime['title']['userPreferred']
         self.image.write_title_text(self.title)
         self.imageLink = anime['coverImage']['large']

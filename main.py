@@ -341,14 +341,14 @@ class window(QMainWindow):
         except StopIteration:
             number = len(self.entryNumbers) + 1
         number = str(number)
-        self.entryNumbers.insert(number-1, number.zfill(2))
+        self.entryNumbers.insert(int(number)-1, number.zfill(2))
         name = self.challengeName.text() + ' ' + number.zfill(2)
         item = QListWidgetItem(name)
         data = challengeEntry(number=number)
         data.image.write_entry_number(number)
         item.setData(Qt.UserRole, data)
         self.challengeEntries.addItem(item)
-        self.challengeEntries.setCurrentRow(number-1)
+        self.challengeEntries.setCurrentRow(int(number)-1)
 
     def load_entry(self, currentItem):
         # Loads in the visual information of the selected entry.

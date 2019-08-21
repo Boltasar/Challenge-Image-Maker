@@ -5,10 +5,10 @@ Created on Thu Jun 27 13:20:22 2019
 @author: nxf52810
 """
 
+from datetime import datetime
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QDialog, QGridLayout, QTextEdit
 from PyQt5.QtWidgets import QPushButton, QMessageBox
-
 
 class challengeDialog(QDialog):
     def __init__(self, parent=None, mode='', title='Popup', data=None):
@@ -107,6 +107,10 @@ class challengeDialog(QDialog):
         self.accept()
 
     def build_post_from_data(self, data):
+        if data['startDate'].split('/')[2] == datetime.now().strftime("%Y"):
+            startdate = data['startDate'][:-5]
+        else:
+            startdate = data['startDate']
         text = r"""#<center>__{0} Challenge__
 <center>
 Challenge Start Date: {1}
@@ -115,14 +119,33 @@ Challenge Finish Date: {2}
 Progress {3}/{4}
 
 ✔️ = Completed | ▶️ = Currenty Watching | ❌ = Not Started | ❔ = Undecided
-""".format(data['name'], '1/7','31/7', data['completed'], data['total'])
-        if data['easyEntries'] or data['normalEntries'] or data['hardEntries']:
-                pass
-        else:
-            text += '<hr>\n'
+""".format(data['name'], startdate, datetime.now().strftime("%d/%m"), data['completed'], data['total'])
+        if data['easyEntries']:
+            text += '<hr>\nEasy\n~!'
+            for entry in data['easyEntries']:
+                text += (r"[<img src = '[insert link to {0} {1} here]'"
+                + r" width = 20%>]({2})").format(data['name'], entry['number'],
+                                              entry['link'])
+            text += '!~'
+        if data['normalEntries']:
+            text += '\n<hr>\nNormal\n~!'
+            for entry in data['normalEntries']:
+                text += (r"[<img src = '[insert link to {0} {1} here]'"
+                + r" width = 20%>]({2})").format(data['name'], entry['number'],
+                                              entry['link'])
+            text += '!~'
+        if data['hardEntries']:
+            text += '\n<hr>\nHard\n~!'
+            for entry in data['hardEntries']:
+                text += (r"[<img src = '[insert link to {0} {1} here]'"
+                + r" width = 20%>]({2})").format(data['name'], entry['number'],
+                                              entry['link'])
+            text += '!~'
+        if data['entries']:
+            text += '\n<hr>\n'
             for entry in data['entries']:
                 text += (r"[<img src = '[insert link to {0} {1} here]'"
                 + r" width = 20%>]({2})").format(data['name'], entry['number'],
                                               entry['link'])
-            text += '\n<hr>\nSpecial Notes:\n'
+        text += '\n<hr>\nSpecial Notes:\n'
         return text

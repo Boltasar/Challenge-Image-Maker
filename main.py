@@ -10,6 +10,7 @@ Small program that helps generate the images used in several AWC submission post
 import json
 import re
 import os
+import datetime
 # Import PyQt for the GUI
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QIcon, QIntValidator, QValidator, QPixmap, QKeySequence
@@ -120,6 +121,12 @@ class window(QMainWindow):
         prev_item = QShortcut(QKeySequence("Ctrl+Shift+Tab"), self)
         prev_item.activated.connect(lambda: self.challengeEntries_change_row(-1))
 
+        self.startDate = QLineEdit()
+        self.startDate.label = QLabel("Challenge Start Date:")
+        self.startDate.setInputMask("09/09/9999")
+        self.startDate.setText("01/01/1950")
+        self.startDate.setFixedWidth(82)
+
         self.username = QLineEdit()
         self.username.setPlaceholderText("Input your username here")
 
@@ -130,11 +137,13 @@ class window(QMainWindow):
         mainGrid = {}
         # Create the the main grid layout
         mainGrid['layout'] = QGridLayout()
-        mainGrid['layout'].addWidget(self.username, 0, 0, 1, 2)
-        mainGrid['layout'].addWidget(self.challengeName, 1, 0)
-        mainGrid['layout'].addWidget(self.addEntry, 1, 1)
-        mainGrid['layout'].addWidget(self.challengeEntries, 2, 0, 1, 2)
-        mainGrid['layout'].addWidget(self.rightSide['container'], 0, 2, 3, 1)
+        mainGrid['layout'].addWidget(self.startDate.label, 0, 0, 1, 1, Qt.AlignRight)
+        mainGrid['layout'].addWidget(self.startDate, 0, 1, 1, 1)
+        mainGrid['layout'].addWidget(self.username, 1, 0, 1, 2)
+        mainGrid['layout'].addWidget(self.challengeName, 2, 0)
+        mainGrid['layout'].addWidget(self.addEntry, 2, 1)
+        mainGrid['layout'].addWidget(self.challengeEntries, 3, 0, 1, 2)
+        mainGrid['layout'].addWidget(self.rightSide['container'], 0, 2, 4, 1)
 
         build_layout(mainGrid, 'widget', 'layout', 0, 2)
 
@@ -388,6 +397,7 @@ class window(QMainWindow):
         self.entryNumbers = []
         self.challengeName.setText('')
         self.rightSide['container'].setEnabled(False)
+        self.startDate.setText(datetime.datetime.now().strftime("%d/%m/%Y"))
 
     def load_challenge_prompt(self, filename=None):
         """
@@ -418,6 +428,8 @@ class window(QMainWindow):
     def load_challenge_data(self, savedata):
         self.statusBar().showMessage('Loading Anime Challenge Data')
         self.challengeName.setText(savedata['name'])
+        if 'startDate' in savedata.keys():
+            self.startDate.setText(savedata['startDate'])
         if 'username' in savedata.keys():
             self.username.setText(savedata['username'])
         if 'entryNumbers' in savedata.keys():
@@ -461,6 +473,7 @@ class window(QMainWindow):
                 'username': self.username.text(),
                 'entryNumbers': self.entryNumbers,
                 'exportPath': self.exportPath,
+                'startDate': self.startDate.text(),
                 'entries': entries
                 }
         with open(filename, 'w') as f:
@@ -485,6 +498,7 @@ class window(QMainWindow):
     def export_to_forum_code(self):
         savedata = {
                 'name': self.challengeName.text(),
+                'startDate': self.startDate.text(),
                 'entries': [],
                 'easyEntries': [],
                 'normalEntries': [],
@@ -498,7 +512,8 @@ class window(QMainWindow):
                     'number': data.number,
                     'link': data.link,
                     }
-            if data.status['Complete'] == True:
+            if (data.status['Complete'] == True
+                or data.status['Previously_Watched'] == True):
                 savedata['completed'] += 1
             if data.tierIndex == 0:
                 savedata['entries'].append(entry)

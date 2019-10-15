@@ -82,7 +82,13 @@ class challengeDialog(QDialog):
         self.output['entries'] = {}
         while text:
             line = text.pop(0)
-            index = line.split('.')[0]
+            try:
+                if line[1] == '.':
+                    index = line.split('.')[0]
+                else:
+                    index = line.split(')')[0]
+            except IndexError:
+                continue
             number = ''
             if index[:5] == 'Bonus':
                 try:
@@ -123,28 +129,28 @@ Progress {3}/{4}
         if data['easyEntries']:
             text += '<hr>\nEasy\n~!'
             for entry in data['easyEntries']:
-                text += (r"[<img src = '[insert link to {0} {1} here]'"
+                text += (r"[<img src = 'insert link to {0} {1} here'"
                 + r" width = 20%>]({2})").format(data['name'], entry['number'],
                                               entry['link'])
             text += '!~'
         if data['normalEntries']:
             text += '\n<hr>\nNormal\n~!'
             for entry in data['normalEntries']:
-                text += (r"[<img src = '[insert link to {0} {1} here]'"
+                text += (r"[<img src = 'insert link to {0} {1} here'"
                 + r" width = 20%>]({2})").format(data['name'], entry['number'],
                                               entry['link'])
             text += '!~'
         if data['hardEntries']:
             text += '\n<hr>\nHard\n~!'
             for entry in data['hardEntries']:
-                text += (r"[<img src = '[insert link to {0} {1} here]'"
+                text += (r"[<img src = 'insert link to {0} {1} here'"
                 + r" width = 20%>]({2})").format(data['name'], entry['number'],
                                               entry['link'])
             text += '!~'
         if data['entries']:
             text += '\n<hr>\n'
             for entry in data['entries']:
-                text += (r"[<img src = '[insert link to {0} {1} here]'"
+                text += (r"[<img src = 'insert link to {0} {1} here'"
                 + r" width = 20%>]({2})").format(data['name'], entry['number'],
                                               entry['link'])
         text += '\n<hr>\nSpecial Notes:\n'

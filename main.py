@@ -39,7 +39,6 @@ class window(QMainWindow):
     def __init__(self):
         # Initiates a few instance variables before building the rest
         super().__init__()
-        self.challengePath = PATH
         self.filename = None
         self.exportPath = PATH
         self.entryNumbers = []
@@ -409,10 +408,9 @@ class window(QMainWindow):
         if not filename:
             filename = QFileDialog().getOpenFileName(
                 self, 'Load challenge list',
-                self.challengePath, 'Anime Challenge List Object(*.aclo)')[0]
+                self.exportPath, 'Anime Challenge List Object(*.aclo)')[0]
         if not filename:
             return
-        self.challengePath = filename.rstrip(filename.split('\\')[-1])
         # Open the file or show error in case of failure
         try:
             with open(filename, 'rb') as f:
@@ -455,11 +453,11 @@ class window(QMainWindow):
         # Saves the challenge data to a json file.
         if not filename:
             filename = QFileDialog().getSaveFileName(
-                self, 'Save challenge', self.challengePath,
+                self, 'Save challenge', self.exportPath,
                 'Anime Challenge List Object(*.aclo)')[0]
-        if not filename:
-            return False
-        self.challengePath = filename.rstrip(filename.split('\\')[-1])
+            if not filename:
+                return False
+            self.exportPath = filename.rstrip(filename.split('\\')[-1])
         entries = {}
         for k in range(0, self.challengeEntries.count()):
             name = self.challengeEntries.item(k).text()

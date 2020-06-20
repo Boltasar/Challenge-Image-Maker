@@ -41,7 +41,7 @@ class challengeEntry:
     savedAttributesList = [
         'link', 'animeID', 'status', 'number', 'tierIndex', 'title',
         'imageLink', 'requirement', 'startDate', 'completeDate',
-        'episodeCount', 'episodeDuration'
+        'episodeCount', 'episodeDuration', 'minimumTime'
     ]
 
     def __init__(self, number='0'):
@@ -55,7 +55,7 @@ class challengeEntry:
         -------
         None.
         """
-        self.image = animeImage((31, 35, 35, 255), (95, 104, 117, 255))
+        self.image = animeImage((21, 31, 46, 255), (95, 104, 117, 255))
         self.animeID = None
         self.link = 'https://anilist.co/anime/'
         self.status = {}
@@ -89,7 +89,7 @@ class challengeEntry:
         except ValueError:
             return(False)
 
-    def get_info_from_id(self, username=None):
+    def get_info_from_id(self, username=None, challengeYear=datetime.datetime.now().year):
         # Retrieves Anilist info with the ID
         anime = anilistAPI.get_anime_data(self.animeID)
         if not anime:
@@ -112,7 +112,7 @@ class challengeEntry:
                 self.startDate = userdata['startedAt']
                 self.completeDate = userdata['completedAt']
                 self.progress = userdata['progress']
-        self.image.write_dates_text(self.startDate, self.completeDate, 15)
+        self.image.write_dates_text(self.startDate, self.completeDate, challengeYear=challengeYear, fontSize=15)
         return True
 
     def load_savedata(self, savedata, app):
@@ -129,7 +129,7 @@ class challengeEntry:
             self.image.open_image(self.imageLink)
             self.image.write_duration_text(self.minimumTime, self.episodeCount,
                                            self.episodeDuration, 15)
-            self.image.write_dates_text(self.startDate, self.completeDate, 15)
+            self.image.write_dates_text(self.startDate, self.completeDate, challengeYear=int(app.startDate.text()[-4:]), fontSize=15)
 
 
 class animeImage:
@@ -253,11 +253,11 @@ class animeImage:
             self.title, text, x, y, alignment='center', outline=2,
             font=font, textColor='white', shadowColor='black')
 
-    def write_dates_text(self, startDate, completeDate, fontSize=15):
+    def write_dates_text(self, startDate, completeDate, challengeYear=datetime.datetime.now().year, fontSize=15):
         # Builds the dates layer
         start = 'Start: {day}/{month}/{year}'
         if startDate['day']:
-            if datetime.datetime.now().year == startDate['year']:
+            if datetime.datetime.now().year == startDate['year'] and challengeYear == datetime.datetime.now().year:
                 startDate['year'] = ''
                 # Omits the year if the show was started this year.
         else:

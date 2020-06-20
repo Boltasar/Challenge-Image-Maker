@@ -82,14 +82,12 @@ class challengeDialog(QDialog):
         self.output['entries'] = {}
         while text:
             line = text.pop(0)
-            try:
-                if line[1] == '.':
-                    index = line.split('.')[0]
-                else:
-                    index = line.split(')')[0]
-            except IndexError:
+            if len(line[:10].split('.')) > 1:
+                index = line.split('.')[0]
+            elif len(line[:10].split(')')) > 1:
+                index = line.split(')')[0]
+            else:
                 continue
-            number = ''
             if index[:5] == 'Bonus':
                 try:
                     number = 'B' + index.split()[1]
@@ -104,19 +102,23 @@ class challengeDialog(QDialog):
             self.output['entryNumbers'].append(number)
             entryName = name + ' ' + number
             try:
-                entryData = {'requirement': line.split('__')[1],
-                             'number': number.lstrip('0')}
+                requirement = line.split('__')[1]
             except IndexError:
-                entryData = {'requirement': '',
-                             'number': number.lstrip('0')}
+                requirement = ''
+            animeID = line.split('(')[1].split('/')[4]
+            entryData = {'animeID': animeID,
+                         'requirement': requirement,
+                         'number': number.lstrip('0')}
             self.output['entries'].update({entryName: entryData})
         self.accept()
 
     def build_post_from_data(self, data):
         if data['startDate'].split('/')[2] == datetime.now().strftime("%Y"):
             startdate = data['startDate'][:-5]
+            completedate = datetime.now().strftime("%d/%m")
         else:
             startdate = data['startDate']
+            completedate = datetime.now().strftime("%d/%m/%Y")
         text = r"""#<center>__{0} Challenge__
 <center>
 Challenge Start Date: {1}
@@ -125,33 +127,62 @@ Challenge Finish Date: {2}
 Progress {3}/{4}
 
 ✔️ = Completed | ▶️ = Currenty Watching | ❌ = Not Started | ❔ = Undecided
-""".format(data['name'], startdate, datetime.now().strftime("%d/%m"), data['completed'], data['total'])
+""".format(data['name'], startdate, completedate, data['completed'], data['total'])
+        post_formatting = ""
         if data['easyEntries']:
             text += '<hr>\nEasy\n~!'
+            post_formatting += '<hr>Easy\n'
             for entry in data['easyEntries']:
-                text += (r"[<img src = 'insert link to {0} {1} here'"
-                + r" width = 20%>]({2})").format(data['name'], entry['number'],
-                                              entry['link'])
+                text += image_format(entry, data)
+                post_formatting += text_format(entry)
             text += '!~'
         if data['normalEntries']:
             text += '\n<hr>\nNormal\n~!'
+            post_formatting += '<hr>Normal\n'
             for entry in data['normalEntries']:
-                text += (r"[<img src = 'insert link to {0} {1} here'"
-                + r" width = 20%>]({2})").format(data['name'], entry['number'],
-                                              entry['link'])
+                text += image_format(entry, data)
+                post_formatting += text_format(entry)
             text += '!~'
         if data['hardEntries']:
             text += '\n<hr>\nHard\n~!'
+            post_formatting += '<hr>Hard\n'
             for entry in data['hardEntries']:
-                text += (r"[<img src = 'insert link to {0} {1} here'"
-                + r" width = 20%>]({2})").format(data['name'], entry['number'],
-                                              entry['link'])
+                text += image_format(entry, data)
+                post_formatting += text_format(entry)
             text += '!~'
         if data['entries']:
             text += '\n<hr>\n'
+            post_formatting += '<hr>\n'
             for entry in data['entries']:
-                text += (r"[<img src = 'insert link to {0} {1} here'"
-                + r" width = 20%>]({2})").format(data['name'], entry['number'],
-                                              entry['link'])
-        text += '\n<hr>\nSpecial Notes:\n'
+                text += image_format(entry, data)
+                post_formatting += text_format(entry)
+        text += '\n</center>' + post_formatting
+        text += '<hr><center>Special Notes:\n'
         return text
+    
+def image_format(entry, data):
+    image_format = (r"[<img src = 'insertlink{0}{1}'"
+    + r" width = 20%>]({2})").format(data['name'].replace(" ",""), entry['number'],
+                                  entry['link'])
+    return(image_format)
+def text_format(entry):
+    if not entry["requirement"]:
+        entry['requirement'] = " "
+    text_format = ('{0}) Start: {1} Finish: {2} __{3}__ [{4}]({5})\n'.format(
+        entry['number'].zfill(2), format_date_string(entry['startDate']),
+        format_date_string(entry['completeDate']), entry['requirement'],
+        entry['title'], entry['link']))
+    return(text_format)
+        
+def format_date_string(datestring):
+    dates = datestring.split('/')
+    date_return = ''
+    try:
+        date_return += dates[0].zfill(2)
+    except IndexError:
+        return('??/??')
+    date_return += '/' + dates[1].zfill(2)
+    try:
+        return(date_return + '/' + dates[2].zfill(4))
+    except IndexError:
+        return(date_return)

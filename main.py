@@ -10,7 +10,7 @@ Small program that helps generate the images used in several AWC submission post
 import json
 import re
 import os
-import datetime
+from datetime import datetime
 # Import PyQt for the GUI
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QIcon, QIntValidator, QValidator, QPixmap, QKeySequence
@@ -95,7 +95,7 @@ class window(QMainWindow):
         add_action(codeMenu, '&Import challenge code', 'Ctrl+I',
                    'Import challenge from challenge code',
                    self.import_from_challenge_code)
-        add_action(codeMenu, '&Export forum chode', 'Ctrl+E',
+        add_action(codeMenu, '&Export forum code', 'Ctrl+E',
                    'Gives a prebuild forum post. Image links still need to '
                    + 'be manually included', self.export_to_forum_code)
         # End of main body functions
@@ -309,7 +309,7 @@ class window(QMainWindow):
             self, 'Save image', self.exportPath, 'PNG(*.png)')[0]
         if not filename:
             return
-        self.exportPath = filename.rstrip(filename.split('\\')[-1])
+        self.exportPath = filename.rstrip(filename.split('/')[-1])
         image = data.image.build_full_image()
         image.save(filename, 'png')
 
@@ -396,7 +396,7 @@ class window(QMainWindow):
         self.entryNumbers = []
         self.challengeName.setText('')
         self.rightSide['container'].setEnabled(False)
-        self.startDate.setText(datetime.datetime.now().strftime("%d/%m/%Y"))
+        self.startDate.setText(datetime.now().strftime("%d/%m/%Y"))
 
     def load_challenge_prompt(self, filename=None):
         """
@@ -457,7 +457,7 @@ class window(QMainWindow):
                 'Anime Challenge List Object(*.aclo)')[0]
             if not filename:
                 return False
-            self.exportPath = filename.rstrip(filename.split('\\')[-1])
+            self.exportPath = filename.rstrip(filename.split('/')[-1])
         entries = {}
         for k in range(0, self.challengeEntries.count()):
             name = self.challengeEntries.item(k).text()
@@ -509,7 +509,29 @@ class window(QMainWindow):
             entry = {
                     'number': data.number,
                     'link': data.link,
+                    'requirement': data.requirement,
+                    'title': data.title,
                     }
+            if data.startDate:
+                entry["startDate"] = ''
+                if data.startDate['day']:
+                    entry['startDate'] += str(data.startDate['day'])
+                if data.startDate['month']:
+                    entry['startDate'] += '/' + str(data.startDate['month'])
+                if data.startDate['year']:
+                    entry["startDate"] += '/' + str(data.startDate['year'])
+            else:
+                entry["startDate"] = '??/??'
+            if data.completeDate:
+                entry["completeDate"] = ''
+                if data.completeDate['day']:
+                    entry['completeDate'] += str(data.completeDate['day'])
+                if data.completeDate['month']:
+                    entry['completeDate'] += '/' + str(data.completeDate['month'])
+                if data.completeDate['year']:
+                    entry["completeDate"] += '/' + str(data.completeDate['year'])
+            else:
+                entry["completeDate"] = '??/??'
             if (data.status['Complete'] == True
                 or data.status['Previously_Watched'] == True):
                 savedata['completed'] += 1
@@ -554,7 +576,7 @@ class window(QMainWindow):
     def import_aniData(self):
         # Imports the data from the internet.
         data = self.challengeEntries.currentItem().data(Qt.UserRole)
-        data.get_info_from_id(self.username.text())
+        data.get_info_from_id(self.username.text(), int(self.startDate.text()[-4:]))
         for item in ['image', 'title', 'dates', 'duration']:
             self.change_image(data, item)
         self.update_total_duration()
@@ -568,18 +590,31 @@ class window(QMainWindow):
 
     def update_total_duration(self):
         # Calculates the total duration of minutes spent on the challenge
-        total = 0
-        watched = 0
+        aniIDs = []
+        totalList = []
+        watchedList = []
+        duplicatesList = []
         for x in range(self.challengeEntries.count()):
             data = self.challengeEntries.item(x).data(Qt.UserRole)
             episodes = data.episodeCount
             epLength = data.episodeDuration
+            if not (episodes and epLength):
+                continue
+            aniID = data.animeID
             duration = episodes * epLength
-            watching = max(data.progress * epLength,
-                           duration * data.status['Complete'])
-            total += duration
-            watched += watching
-        self.totalDuration.setText('{}/{} Minutes'.format(watched, total))
+            watching = max(data.progress * epLength, duration * 
+                           max(data.status['Complete'], data.status['Previously_Watched']))
+            if aniID not in aniIDs:
+                aniIDs.append(aniID)
+                totalList.append(duration)
+                watchedList.append(watching)
+            else:
+                if aniID not in duplicatesList:
+                    duplicatesList.append(aniID)
+                if watching > watchedList[aniIDs.index(aniID)]:
+                    watchedList[aniIDs.index(aniID)] = watching
+        self.totalDuration.setText('{}/{} Minutes | Duplicates {}'.format(
+            sum(watchedList), sum(totalList), duplicatesList))
 
     def change_status(self, name, state, button):
         # Builds the icon and border glow according to selected check/radiobox

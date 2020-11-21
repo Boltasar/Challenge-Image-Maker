@@ -12,7 +12,7 @@ RESOURCES_FONT_PATH = PATH + '\\resources\\fonts\\'
 RESOURCES_IMAGE_PATH = PATH + '\\resources\\images\\'
 PREVIOUS_SESSION = PATH + '\\PREVIOUS-SESSION.aclo'
 STATUS_DICTIONARY = {
-    'Complete': [True, False, 'Green'], 'Watching': [True, False, 'Blue'],
-    'Decided': [True, False, 'Red'], 'Undecided': [True, True, 'White'],
-    'Previously_Watched': [True, False, 'Orange'],
-    'Rewatch': [False, False, None]}
+    'Complete': [True, False, 'Green', '✔️'], 'Watching': [True, False, 'Blue', '▶️'],
+    'Decided': [True, False, 'Red', '❌'], 'Undecided': [True, True, 'White','❔'],
+    'Previously_Watched': [True, False, 'Orange','⏳'],
+    'Rewatch': [False, False, None,'&#128257;']}

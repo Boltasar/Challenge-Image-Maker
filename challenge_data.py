@@ -6,7 +6,6 @@ Created on Tue Jul  2 16:37:25 2019
 """
 
 import math
-import datetime
 # Import PIL for the image editing
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 # Import requests for internet access
@@ -30,6 +29,7 @@ class challengeEntry:
         title (str): The title of the anime.
         imageLink (str): The link to the anime's picture on anilist.
         requirement (str): The challenge entry's goal.
+        additional (str): The additional required info like screenshots.
         startDate (dict): The year, month, day that the anime was started.
         completedDate (dict): The year, month, day that the anime was completed.
         minimumTime (int): The minimum time requirement for the challenge entry.
@@ -40,7 +40,7 @@ class challengeEntry:
     # Class variables
     savedAttributesList = [
         'link', 'animeID', 'status', 'number', 'tierIndex', 'title',
-        'imageLink', 'requirement', 'startDate', 'completeDate',
+        'imageLink', 'requirement', 'additional', 'startDate', 'completeDate',
         'episodeCount', 'episodeDuration', 'minimumTime'
     ]
 
@@ -66,6 +66,7 @@ class challengeEntry:
         self.title = None
         self.imageLink = None
         self.requirement = ''
+        self.additional = ''
         self.startDate = None
         self.completeDate = None
         self.minimumTime = 0
@@ -89,7 +90,7 @@ class challengeEntry:
         except ValueError:
             return(False)
 
-    def get_info_from_id(self, username=None, challengeYear=datetime.datetime.now().year):
+    def get_info_from_id(self, username=None):
         # Retrieves Anilist info with the ID
         anime = anilistAPI.get_anime_data(self.animeID)
         if not anime:
@@ -112,7 +113,7 @@ class challengeEntry:
                 self.startDate = userdata['startedAt']
                 self.completeDate = userdata['completedAt']
                 self.progress = userdata['progress']
-        self.image.write_dates_text(self.startDate, self.completeDate, challengeYear=challengeYear, fontSize=15)
+        self.image.write_dates_text(self.startDate, self.completeDate, fontSize=15)
         return True
 
     def load_savedata(self, savedata, app):
@@ -129,7 +130,7 @@ class challengeEntry:
             self.image.open_image(self.imageLink)
             self.image.write_duration_text(self.minimumTime, self.episodeCount,
                                            self.episodeDuration, 15)
-            self.image.write_dates_text(self.startDate, self.completeDate, challengeYear=int(app.startDate.text()[-4:]), fontSize=15)
+            self.image.write_dates_text(self.startDate, self.completeDate, fontSize=15)
 
 
 class animeImage:
@@ -253,29 +254,19 @@ class animeImage:
             self.title, text, x, y, alignment='center', outline=2,
             font=font, textColor='white', shadowColor='black')
 
-    def write_dates_text(self, startDate, completeDate, challengeYear=datetime.datetime.now().year, fontSize=15):
+    def write_dates_text(self, startDate, completeDate, fontSize=15):
         # Builds the dates layer
-        start = 'Start: {day}/{month}/{year}'
-        if startDate['day']:
-            if datetime.datetime.now().year == startDate['year'] and challengeYear == datetime.datetime.now().year:
-                startDate['year'] = ''
-                # Omits the year if the show was started this year.
-        else:
+        start = 'Start: {year}/{month}/{day}'
+        if not startDate['day']:
             startDate['day'] = startDate['month'] = '??'
-            startDate['year'] = ''
-        start = start.format(**startDate).rstrip('/') + '   '
+            startDate['year'] = '???'
+        start = start.format(**startDate) + '    '
 
-        end = 'End: {day}/{month}/{year}'
-        if completeDate['day']:
-            if (
-                startDate['year'] == ''
-                and datetime.datetime.now().year == completeDate['year']
-            ):  # Only omit year we omitted start year and it's current year.
-                completeDate['year'] = ''
-        else:
+        end = 'End: {year}/{month}/{day}'
+        if not completeDate['day']:
             completeDate['day'] = completeDate['month'] = '??'
-            completeDate['year'] = ''
-        end = end.format(**completeDate).rstrip('/')
+            completeDate['year'] = '????'
+        end = end.format(**completeDate)
         text = start + end
 
         self.dates = self.empty.copy()

@@ -122,8 +122,8 @@ class window(QMainWindow):
 
         self.startDate = QLineEdit()
         self.startDate.label = QLabel("Challenge Start Date:")
-        self.startDate.setInputMask("09/09/9999")
-        self.startDate.setText("01/01/1950")
+        self.startDate.setInputMask("9999-09-09")
+        self.startDate.setText("1950-01-01")
         self.startDate.setFixedWidth(82)
 
         self.username = QLineEdit()
@@ -218,6 +218,20 @@ class window(QMainWindow):
         self.entryRequirement['layout'].addWidget(self.entryRequirement['widget'], 1, 0, 1, 4)
 
         build_layout(self.entryRequirement, 'container', 'layout', [5, 2], 0)
+        
+        # Build requirement text entry box
+        self.additionalInfo = {}
+        self.additionalInfo['widget'] = QTextEdit()
+        self.additionalInfo['widget'].setAcceptRichText(False)
+        self.additionalInfo['widget'].setPlaceholderText("Type the additional information")
+        self.additionalInfo['label'] = QLabel('Additional Info')
+        self.additionalInfo['layout'] = QGridLayout()
+        self.additionalInfo['layout'].addWidget(self.additionalInfo['label'], 0, 0)
+        self.additionalInfo['layout'].addWidget(QWidget(), 0, 1)
+        self.additionalInfo['layout'].setColumnStretch(1, 255)
+        self.additionalInfo['layout'].addWidget(self.additionalInfo['widget'], 1, 0, 1, 4)
+
+        build_layout(self.additionalInfo, 'container', 'layout', [5, 2], 0)
 
         # Build the buttons
         self.buttons = {}
@@ -267,6 +281,7 @@ class window(QMainWindow):
         rightSide['layout'].addWidget(statusTier['container'], 1, 0, 1, 1)
         rightSide['layout'].addWidget(self.entryRequirement['container'], 2, 0, 1, 1)
         rightSide['layout'].setRowStretch(2, 255)
+        rightSide['layout'].addWidget(self.additionalInfo['container'], 3, 0, 1, 1)
         rightSide['layout'].addWidget(self.imageViewer['container'], 1, 1, 3, 3)
 
         build_layout(rightSide, 'container', 'layout', 5, [2, 0, 0, 0])
@@ -285,6 +300,8 @@ class window(QMainWindow):
 
         self.entryRequirement['widget'].textChanged.connect(self.entry_requirement_update)
         self.entryRequirement['timer'].timeout.connect(self.entry_requirement_image_update)
+        
+        self.additionalInfo['widget'].textChanged.connect(self.entry_additional_info_update)
 
         self.entryNumber['widget'].editingFinished.connect(self.number_update)
 
@@ -377,6 +394,7 @@ class window(QMainWindow):
         self.entryNumber['widget'].setText(data.number)
         self.tierChoice['widget'].setCurrentIndex(data.tierIndex)
         self.entryRequirement['widget'].setPlainText(data.requirement)
+        self.additionalInfo['widget'].setPlainText(data.additional)
         self.minimumTime['widget'].setText(str(data.minimumTime))
         for item in self.IMAGELAYERS:
             self.change_image(data, item)
@@ -396,7 +414,7 @@ class window(QMainWindow):
         self.entryNumbers = []
         self.challengeName.setText('')
         self.rightSide['container'].setEnabled(False)
-        self.startDate.setText(datetime.now().strftime("%d/%m/%Y"))
+        self.startDate.setText(datetime.now().strftime("%Y/%m/%d"))
 
     def load_challenge_prompt(self, filename=None):
         """
@@ -501,40 +519,47 @@ class window(QMainWindow):
                 'easyEntries': [],
                 'normalEntries': [],
                 'hardEntries': [],
-                'completed': 0
+                'completed': 0,
+                'previously': 0,
+                'rewatch': 0,
                 }
-        bonus = 0
         for k in range(self.challengeEntries.count()):
             data = self.challengeEntries.item(k).data(Qt.UserRole)
             entry = {
                     'number': data.number,
                     'link': data.link,
                     'requirement': data.requirement,
+                    'additional': data.additional,
                     'title': data.title,
+                    'status': data.status
                     }
             if data.startDate:
                 entry["startDate"] = ''
-                if data.startDate['day']:
-                    entry['startDate'] += str(data.startDate['day'])
-                if data.startDate['month']:
-                    entry['startDate'] += '/' + str(data.startDate['month'])
                 if data.startDate['year']:
-                    entry["startDate"] += '/' + str(data.startDate['year'])
+                    entry["startDate"] += str(data.startDate['year'])
+                if data.startDate['month']:
+                    entry['startDate'] += '-' + str(data.startDate['month']).zfill(2)
+                if data.startDate['day']:
+                    entry['startDate'] += '-' + str(data.startDate['day']).zfill(2)
             else:
-                entry["startDate"] = '??/??'
+                entry["startDate"] = '????-??-??'
             if data.completeDate:
                 entry["completeDate"] = ''
-                if data.completeDate['day']:
-                    entry['completeDate'] += str(data.completeDate['day'])
-                if data.completeDate['month']:
-                    entry['completeDate'] += '/' + str(data.completeDate['month'])
                 if data.completeDate['year']:
-                    entry["completeDate"] += '/' + str(data.completeDate['year'])
+                    entry['completeDate'] += str(data.completeDate['year'])
+                if data.completeDate['month']:
+                    entry['completeDate'] += '-' + str(data.completeDate['month']).zfill(2)
+                if data.completeDate['day']:
+                    entry["completeDate"] += '-' + str(data.completeDate['day']).zfill(2)
             else:
-                entry["completeDate"] = '??/??'
-            if (data.status['Complete'] == True
-                or data.status['Previously_Watched'] == True):
+                entry["completeDate"] = '????-??-??'
+            if (data.status['Complete'] == True):
                 savedata['completed'] += 1
+            if (data.status['Previously_Watched'] == True):
+                savedata['completed'] += 1
+                savedata['previously'] = 1
+            if (data.status['Rewatch'] == True):
+                savedata['rewatch'] = 1
             if data.tierIndex == 0:
                 savedata['entries'].append(entry)
             elif data.tierIndex == 1:
@@ -543,9 +568,7 @@ class window(QMainWindow):
                 savedata['normalEntries'].append(entry)
             elif data.tierIndex == 3:
                 savedata['hardEntries'].append(entry)
-            if data.number[0] == 'B':
-                bonus += 1
-        savedata['total'] = k + 1 - bonus
+        savedata['total'] = k + 1
         challengeDialog.exporter(self, savedata).exec_()
 
 
@@ -576,7 +599,7 @@ class window(QMainWindow):
     def import_aniData(self):
         # Imports the data from the internet.
         data = self.challengeEntries.currentItem().data(Qt.UserRole)
-        data.get_info_from_id(self.username.text(), int(self.startDate.text()[-4:]))
+        data.get_info_from_id(self.username.text())
         for item in ['image', 'title', 'dates', 'duration']:
             self.change_image(data, item)
         self.update_total_duration()
@@ -678,6 +701,11 @@ class window(QMainWindow):
         data.requirement = self.entryRequirement['widget'].toPlainText()
         # Timer to put a delay on firing the resize code since it gets resource intensive otherwise.
         self.entryRequirement['timer'].start(250)
+        
+    def entry_additional_info_update(self):
+        # Updates the additional info text
+        data = self.challengeEntries.currentItem().data(Qt.UserRole)
+        data.additional = self.additionalInfo['widget'].toPlainText()
 
     def entry_requirement_image_update(self):
         # Updates the requirement image

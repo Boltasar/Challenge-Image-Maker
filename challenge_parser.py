@@ -5,10 +5,11 @@ Created on Thu Jun 27 13:20:22 2019
 @author: nxf52810
 """
 
-from datetime import datetime
+from datetime import datetime as dt
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QDialog, QGridLayout, QTextEdit
 from PyQt5.QtWidgets import QPushButton, QMessageBox
+from config import STATUS_DICTIONARY
 
 class challengeDialog(QDialog):
     def __init__(self, parent=None, mode='', title='Popup', data=None):
@@ -58,7 +59,6 @@ class challengeDialog(QDialog):
                 line = text.pop(0)
                 if line[:1] == '#':
                     name = line.split('__')[1]
-                    name = name[:-10]
                     break
                 elif line[:7] == '__Genre':
                     name = line.split('__')[1]
@@ -82,55 +82,63 @@ class challengeDialog(QDialog):
         self.output['entries'] = {}
         while text:
             line = text.pop(0)
-            if len(line[:10].split('.')) > 1:
-                index = line.split('.')[0]
-            elif len(line[:10].split(')')) > 1:
+            if len(line[:10].split(')')) > 1:
                 index = line.split(')')[0]
             else:
                 continue
-            if index[:5] == 'Bonus':
-                try:
-                    number = 'B' + index.split()[1]
-                except IndexError:
-                    number = 'B1'
-            else:
-                try:
-                    int(index)
-                    number = index.zfill(2)
-                except ValueError:
-                    continue
-            self.output['entryNumbers'].append(number)
-            entryName = name + ' ' + number
+            self.output['entryNumbers'].append(index)
+            entryName = name + ' ' + index
             try:
                 requirement = line.split('__')[1]
             except IndexError:
                 requirement = ''
-            animeID = line.split('(')[1].split('/')[4]
+            additional = ''
+            while line:
+                line = text.pop(0)
+                if not line:
+                    continue
+                elif line[:1] == '[':
+                    animeID = line.split('(')[1].split('/')[4]
+                elif line[:6] == 'Start:':
+                    try:
+                        additional += '\n' + '//'.join(line.split('//')[1:]).lstrip()
+                    except IndexError():
+                        additional += ''
+                else:
+                    requirement += '\n' + line
+            additional = additional.lstrip('\n')
             entryData = {'animeID': animeID,
                          'requirement': requirement,
-                         'number': number.lstrip('0')}
+                         'number': index,
+                         'additional': additional}
             self.output['entries'].update({entryName: entryData})
         self.accept()
 
     def build_post_from_data(self, data):
-        if data['startDate'].split('/')[2] == datetime.now().strftime("%Y"):
-            startdate = data['startDate'][:-5]
-            completedate = datetime.now().strftime("%d/%m")
-        else:
-            startdate = data['startDate']
-            completedate = datetime.now().strftime("%d/%m/%Y")
+        startdate = data['startDate']
+        completedate = startdate
+        for entry in data['entries'] + data['easyEntries'] + data['normalEntries'] + data['hardEntries']:
+            try:
+                if dt.strptime(entry['completeDate'], "%Y-%m-%d") > dt.strptime(completedate, "%Y-%m-%d"):
+                    completedate = entry['completeDate']
+            except ValueError:
+                completedate = str(dt.now())[:7] + "-??"
+                break
         text = r"""#<center>__{0} Challenge__
-<center>
 Challenge Start Date: {1}
 Challenge Finish Date: {2}
 
 Progress {3}/{4}
 
-✔️ = Completed | ▶️ = Currenty Watching | ❌ = Not Started | ❔ = Undecided
-""".format(data['name'], startdate, completedate, data['completed'], data['total'])
+✔️ = Completed | ▶️ = Currenty Watching | ❌ = Not Started | ❔ = Undecided""".format(
+data['name'], startdate, completedate, data['completed'], data['total'])
+        if data['previously']:
+            text += r""" | ⌛ = Previously Watched"""
+        if data['rewatch']:
+            text += r""" | &#128257; = Rewatch"""
         post_formatting = ""
         if data['easyEntries']:
-            text += '<hr>\nEasy\n~!'
+            text += '\n<hr>\nEasy\n~!'
             post_formatting += '<hr>Easy\n'
             for entry in data['easyEntries']:
                 text += image_format(entry, data)
@@ -152,11 +160,11 @@ Progress {3}/{4}
             text += '!~'
         if data['entries']:
             text += '\n<hr>\n'
-            post_formatting += '<hr>\n'
+            post_formatting += '<hr>\n\n'
             for entry in data['entries']:
                 text += image_format(entry, data)
                 post_formatting += text_format(entry)
-        text += '\n</center>' + post_formatting
+        text += '\n</center>\n' + post_formatting
         text += '<hr><center>Special Notes:\n'
         return text
     
@@ -168,21 +176,14 @@ def image_format(entry, data):
 def text_format(entry):
     if not entry["requirement"]:
         entry['requirement'] = " "
-    text_format = ('{0}) Start: {1} Finish: {2} __{3}__ [{4}]({5})\n'.format(
-        entry['number'].zfill(2), format_date_string(entry['startDate']),
-        format_date_string(entry['completeDate']), entry['requirement'],
-        entry['title'], entry['link']))
+    status_icon = ''
+    for status in entry['status']:
+        if entry['status'][status]:
+            status_icon += STATUS_DICTIONARY[status][-1]
+    text_format = ('{0}) [{5}] __{3}__\n{4}\nStart: {1} Finish: {2}'.format(
+        entry['number'].zfill(2),entry['startDate'],entry['completeDate'],
+        entry['requirement'], entry['link'], status_icon))
+    if entry['additional']:
+        text_format += r' // *{0}*'.format(entry['additional'])
+    text_format += '\n\n'
     return(text_format)
-        
-def format_date_string(datestring):
-    dates = datestring.split('/')
-    date_return = ''
-    try:
-        date_return += dates[0].zfill(2)
-    except IndexError:
-        return('??/??')
-    date_return += '/' + dates[1].zfill(2)
-    try:
-        return(date_return + '/' + dates[2].zfill(4))
-    except IndexError:
-        return(date_return)

@@ -156,23 +156,26 @@ class animeImage:
 
     def open_image(self, url):
         # Loads the image from the anilist server
-        image = Image.open(requests.get(url, stream=True).raw)
-        width = 230
-        height = 320
-        if image.size[0] != width:
-            ratio = width / image.size[0]
-            newHeight = int(math.ceil(ratio * image.size[1]))
-            image = image.resize((width, newHeight), Image.BICUBIC)
-        if image.size[1] > height:
-            toCrop = image.size[1] - height
-            left = 0
-            right = width
-            top = toCrop//2
-            bottom = top + height
-            image = image.crop((left, top, right, bottom))
-        croppedHeight = image.size[1]
-        self.image = self.empty.copy()
-        self.image.paste(image, (40, (height - croppedHeight) // 2 + 40))
+        try:
+            image = Image.open(requests.get(url, stream=True).raw)
+            width = 230
+            height = 320
+            if image.size[0] != width:
+                ratio = width / image.size[0]
+                newHeight = int(math.ceil(ratio * image.size[1]))
+                image = image.resize((width, newHeight), Image.BICUBIC)
+            if image.size[1] > height:
+                toCrop = image.size[1] - height
+                left = 0
+                right = width
+                top = toCrop//2
+                bottom = top + height
+                image = image.crop((left, top, right, bottom))
+            croppedHeight = image.size[1]
+            self.image = self.empty.copy()
+            self.image.paste(image, (40, (height - croppedHeight) // 2 + 40))
+        except:
+            pass
 
     def build_border(self, borderColor, fillColor):
         # Builds a border around the anime image

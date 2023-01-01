@@ -96,8 +96,11 @@ class window(QMainWindow):
                    'Import challenge from challenge code',
                    self.import_from_challenge_code)
         add_action(codeMenu, '&Export forum code', 'Ctrl+E',
-                   'Gives a prebuild forum post. Image links still need to '
-                   + 'be manually included', self.export_to_forum_code)
+                   'Gives a prebuild forum post.', self.export_to_forum_code)
+        add_action(codeMenu, 'Export forum code with images', 'Ctrl+Shift+E',
+                   'Gives a prebuild forum post with place for the images.\n'
+                   + 'Image links still need to be manually included',
+                   self.export_to_forum_code_with_images)
         # End of main body functions
 ##############################################################################
 
@@ -511,7 +514,7 @@ class window(QMainWindow):
                     return
             self.load_challenge_data(data.output)
 
-    def export_to_forum_code(self):
+    def export_to_forum_code(self, images=False):
         savedata = {
                 'name': self.challengeName.text(),
                 'startDate': self.startDate.text(),
@@ -522,6 +525,8 @@ class window(QMainWindow):
                 'completed': 0,
                 'previously': 0,
                 'rewatch': 0,
+                'duration': self.totalDuration.text().split("|")[0],
+                'images': images,
                 }
         for k in range(self.challengeEntries.count()):
             data = self.challengeEntries.item(k).data(Qt.UserRole)
@@ -571,6 +576,8 @@ class window(QMainWindow):
         savedata['total'] = k + 1
         challengeDialog.exporter(self, savedata).exec_()
 
+    def export_to_forum_code_with_images(self):
+        self.export_to_forum_code(images=True)
 
     def challenge_name_update(self):
         # Updates all entry names to the new challenge name.
@@ -807,7 +814,7 @@ class buttonGroup():
             self.add_button(key, typelist[0], typelist[1], typelist[2])
 
 
-class numberValidator(QValidator):
+class numberValidator(QValidator):  
 
     def __init__(self, parent):
         super().__init__(parent=parent)
@@ -819,12 +826,11 @@ class numberValidator(QValidator):
             return QValidator.Intermediate, s, pos
         elif length > 2:
             return QValidator.Invalid, s, pos
-        filtered = re.match(r'B{0,1}\d{0,2}', s.upper())
+        filtered = re.match(r'[A-Z]?\d{0,2}', s.upper())
         if not filtered:
             return QValidator.Invalid, s, pos
         filtered = filtered.group()
-        if (filtered == 'B' or filtered.zfill(2) == '00'
-            or filtered.zfill(2) in self.parent.entryNumbers):
+        if filtered.zfill(2) in self.parent.entryNumbers:
             return QValidator.Intermediate, s, pos
         else:
             return QValidator.Acceptable, filtered, pos

@@ -93,12 +93,14 @@ class challengeDialog(QDialog):
             except IndexError:
                 requirement = ''
             additional = ''
-            while line:
-                line = text.pop(0)
+            while text:
+                line = text.pop(0).rstrip()
                 if not line:
-                    continue
+                    break
                 elif line[:1] == '[':
-                    animeID = line.split('(')[1].split('/')[4]
+                    animeID = line.split('](')[1].split('/')[4]
+                elif line[:4] == 'http':
+                    animeID = line.split('/')[4]
                 elif line[:6] == 'Start:':
                     try:
                         additional += '\n' + '//'.join(line.split('//')[1:]).lstrip()
@@ -124,7 +126,7 @@ class challengeDialog(QDialog):
             except ValueError:
                 completedate = str(dt.now())[:7] + "-??"
                 break
-        text = r"""#<center>__{0} Challenge__
+        text = r"""#<center>__{0}__
 Challenge Start Date: {1}
 Challenge Finish Date: {2}
 
@@ -136,36 +138,41 @@ data['name'], startdate, completedate, data['completed'], data['total'])
             text += r""" | ⌛ = Previously Watched"""
         if data['rewatch']:
             text += r""" | &#128257; = Rewatch"""
+        text += "\n\n<hr>"
         post_formatting = ""
+        images = ""
         if data['easyEntries']:
-            text += '\n<hr>\nEasy\n~!'
-            post_formatting += '<hr>Easy\n'
+            images += '\nEasy\n~!'
+            post_formatting += '<hr>\n\n__Mode: Easy__\n\n'
             for entry in data['easyEntries']:
-                text += image_format(entry, data)
+                images += image_format(entry, data)
                 post_formatting += text_format(entry)
-            text += '!~'
+            images += '!~\n<hr>'
         if data['normalEntries']:
-            text += '\n<hr>\nNormal\n~!'
-            post_formatting += '<hr>Normal\n'
+            images += '\nNormal\n~!'
+            post_formatting += '<hr>\n\n__Mode: Normal__\n\n'
             for entry in data['normalEntries']:
-                text += image_format(entry, data)
+                images += image_format(entry, data)
                 post_formatting += text_format(entry)
-            text += '!~'
+            images += '!~\n<hr>'
         if data['hardEntries']:
-            text += '\n<hr>\nHard\n~!'
-            post_formatting += '<hr>Hard\n'
+            images += '\nHard\n~!'
+            post_formatting += '<hr>\n\n__Mode: Hard__\n\n'
             for entry in data['hardEntries']:
-                text += image_format(entry, data)
+                images += image_format(entry, data)
                 post_formatting += text_format(entry)
-            text += '!~'
+            images += '!~\n<hr>'
         if data['entries']:
-            text += '\n<hr>\n'
-            post_formatting += '<hr>\n\n'
+            images += '\n'
+            post_formatting += '\n\n'
             for entry in data['entries']:
-                text += image_format(entry, data)
+                images += image_format(entry, data)
                 post_formatting += text_format(entry)
-        text += '\n</center>\n' + post_formatting
-        text += '<hr><center>Special Notes:\n'
+            images += '\n<hr>'
+        if data['images']:
+            text+= images
+        text += post_formatting
+        text += '<hr><center>Special Notes:\n Total duration: {}'.format(data['duration'])
         return text
     
 def image_format(entry, data):
@@ -180,7 +187,7 @@ def text_format(entry):
     for status in entry['status']:
         if entry['status'][status]:
             status_icon += STATUS_DICTIONARY[status][-1]
-    text_format = ('{0}) [{5}] __{3}__\n{4}\nStart: {1} Finish: {2}'.format(
+    text_format = ('{0}) {5} __{3}__\n{4}\nStart: {1} Finish: {2}'.format(
         entry['number'].zfill(2),entry['startDate'],entry['completeDate'],
         entry['requirement'], entry['link'], status_icon))
     if entry['additional']:
